@@ -658,7 +658,7 @@ spec:
 ```
 Tương tự cho GitLab, SonarQube, Nexus.
 
-3. Không thêm tolerations cho Jenkins agents
+3. **Không thêm tolerations cho Jenkins agents**
    
   - PodTemplate Jenkins agent (maven, docker, trivy, python, …) không khai báo tolerations với role=devops-core.
   - Như vậy:
