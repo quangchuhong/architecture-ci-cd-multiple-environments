@@ -710,6 +710,7 @@ EKS-devops-test:
     - loki / fluent-bit
     - alertmanager
 ```
+
 ### 12.2. Metrics quan trọng theo từng tool
 
 **Jenkins**
@@ -811,3 +812,63 @@ EKS-devops-test:
       
   - Alert:
     - Keyword-based (ví dụ: SEVERE, FATAL, OutOfMemoryError).
+
+
+### 12.4. Dashboard gợi ý trong Grafana
+
+**1. DevOps Overview**
+
+  - Jenkins queue length, build success/fail rate.
+  - GitLab request/second, 5xx rate.
+  - Sonar background tasks.
+  - Nexus disk usage.
+  - Node resource usage (CPU/RAM per node group).
+    
+**2. Jenkins CI Load**
+
+  - Số agent running theo thời gian.
+  - Queue length.
+  - Top slowest pipelines.
+  - Thời gian spawn/kết thúc agent.
+    
+**3. Cluster Health**
+
+  - CPU/RAM per node group (devops-core, ci-agent).
+  - Số pod per namespace (jenkins-test, gitlab, sonarqube, nexus).
+  - Node status.
+    
+**4. Quality & Security**
+
+  - SonarQube: số lượng project fail Quality Gate.
+  - Trivy: số lượng HIGH/CRITICAL vuln theo thời gian (nếu push metric → Prometheus).
+
+
+### 12.5. Cảnh báo & quy trình xử lý
+
+  - AlertManager cấu hình gửi:
+    - Slack channel #devops-alerts / email nhóm DevOps.
+      
+  - Mức độ:
+    - Warning:
+      - Queue Jenkins cao nhưng chưa quá giới hạn.
+      - Disk 70–80%.
+    - Critical:
+      - Jenkins/GitLab/Sonar/Nexus không up (HTTP 5xx, pod CrashLoop).
+      - Disk > 90%.
+      - Node NotReady.
+
+**Quy trình:**
+
+1. Alert → Slack/email.
+   
+2. DevOps check dashboard (Grafana) + log (Loki/Kibana).
+   
+3. Nếu do tải CI:
+   
+  - Tăng tạm thời max node group ci-agent.
+  - Giảm containerCap/instanceCap Jenkins.
+    
+4. Nếu do lỗi app (GitLab/Sonar/Nexus):
+   
+  - Xem log container.
+  - Thực hiện runbook: restart pod, tăng resource, kiểm tra DB/disk.
