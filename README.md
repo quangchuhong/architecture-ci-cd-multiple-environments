@@ -30,6 +30,104 @@ Yêu cầu:
 
 ---
 
+### Toàn cảnh hạ tầng DevOps + App
+
+                ┌──────────────────────────────────────┐
+                │             AWS Cloud                │
+                └──────────────────────────────────────┘
+
+      ┌───────────────────────────┐        ┌───────────────────────────┐
+      │    EKS-devops-test        │        │    EKS-devops-prod        │
+      │ (hạ tầng DevOps cho CI)   │        │ (hạ tầng DevOps cho Prod) │
+      ├───────────────────────────┤        ├───────────────────────────┤
+      │ Namespace gitlab          │        │ Namespace jenkins-prod    │
+      │  ┌─────────────────────┐ │        │  ┌─────────────────────┐  │
+      │  │      GitLab         │◄┼────────┼──┤  Jenkins Prod        │  │
+      │  └─────────────────────┘ │        │  └─────────────────────┘  │
+      │ Namespace jenkins-test    │        └───────────────────────────┘
+      │  ┌─────────────────────┐ │
+      │  │  Jenkins Test/Stg   │ │
+      │  └─────────────────────┘ │
+      │ Namespace sonarqube      │
+      │  ┌─────────────────────┐ │
+      │  │    SonarQube        │ │
+      │  └─────────────────────┘ │
+      │ Namespace nexus          │
+      │  ┌─────────────────────┐ │
+      │  │      Nexus          │ │
+      │  └─────────────────────┘ │
+      │ Namespace security-scan  │
+      │  ┌───────────┐ ┌──────┐ │
+      │  │  Trivy    │ │BDuck │ │
+      │  └───────────┘ └──────┘ │
+      └───────────────────────────┘
+
+                     │ CI/CD
+                     ▼
+
+      ┌────────────────────────────────────────────────────┐
+      │                    EKS-app                        │
+      │           (cluster chạy ứng dụng)                 │
+      ├────────────────────────────────────────────────────┤
+      │ Namespace app-test   ──> Env Test                 │
+      │ Namespace app-stg    ──> Env Staging              │
+      │ Namespace app-prod   ──> Env Prod                 │
+      └────────────────────────────────────────────────────┘
+
+                 ┌───────────────┐     ┌───────────────┐
+                 │     ECR       │     │      S3       │
+                 └───────────────┘     └───────────────┘
+                 (image registry)      (artifact/logs)
+
+
+
+### Luồng CI/CD theo nhánh
+
+             ┌────────────┐
+Dev pushes → │   GitLab   │
+             └─────┬──────┘
+       Webhook      │
+                    │
+        ┌───────────▼─────────────┐
+        │   Jenkins Test/Stg      │ (EKS-devops-test)
+        └─────────┬───────────────┘
+                  │
+                  │ Build/Test/Scan/Push
+                  │
+                  ▼
+        ┌────────────────────────────┐
+        │  SonarQube / Trivy / Nexus│
+        │        + ECR / S3         │
+        └────────────────────────────┘
+                  │
+                  │ Deploy
+                  │
+        ┌─────────▼───────────┐
+        │       EKS-app       │
+        │  app-test / app-stg │
+        └─────────┬───────────┘
+                  │
+   Staging OK     │ MR
+   ───────────────┘
+             ┌────────────┐
+             │   GitLab   │
+             │  branch    │
+             │   main     │
+             └─────┬──────┘
+                   │ Webhook
+                   ▼
+        ┌──────────────────────┐
+        │   Jenkins Prod       │ (EKS-devops-prod)
+        └─────────┬────────────┘
+                  │
+                  │ Deploy Prod (ArgoCD Prod / Helm)
+                  ▼
+            ┌─────────────┐
+            │  EKS-app    │
+            │  app-prod   │
+            └─────────────┘
+
+
 ## 2. Phân tách hạ tầng DevOps
 
 ### 2.1. Cụm DevOps-Test (`EKS-devops-test`)
