@@ -82,7 +82,7 @@ Yêu cầu:
 
 
 ### Luồng CI/CD theo nhánh
-
+```text
              ┌────────────┐
 Dev pushes → │   GitLab   │
              └─────┬──────┘
@@ -127,6 +127,7 @@ Dev pushes → │   GitLab   │
             │  app-prod   │
             └─────────────┘
 
+```
 
 ## 2. Phân tách hạ tầng DevOps
 
