@@ -865,10 +865,10 @@ EKS-devops-test:
    
 3. Nếu do tải CI:
    
-  - Tăng tạm thời max node group ci-agent.
-  - Giảm containerCap/instanceCap Jenkins.
+    - Tăng tạm thời max node group ci-agent.
+    - Giảm containerCap/instanceCap Jenkins.
     
 4. Nếu do lỗi app (GitLab/Sonar/Nexus):
    
-  - Xem log container.
-  - Thực hiện runbook: restart pod, tăng resource, kiểm tra DB/disk.
+    - Xem log container.
+    - Thực hiện runbook: restart pod, tăng resource, kiểm tra DB/disk.
