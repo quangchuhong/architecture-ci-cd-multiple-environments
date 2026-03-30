@@ -468,4 +468,25 @@ Ví dụ `nodeSelector` cho agents:
 spec:
   nodeSelector:
     role: ci-agent
+```
+### 11.2. Ước lượng resource cho 1 pipeline
 
+Với 1 Jenkins agent kiểu “maven + docker + trivy”:
+
+  - Container maven:
+    
+    - requests: ~0.5 vCPU, 1–2 GiB RAM
+    - limits: 1 vCPU, 2–3 GiB RAM
+      
+  - Container docker:
+    - requests: ~0.5 vCPU, 1 GiB RAM
+    - limits: 1 vCPU, 2 GiB RAM
+      
+  - Container trivy:
+    - requests: ~0.3 vCPU, 0.5–1 GiB RAM
+    - limits: 0.5 vCPU, 1–2 GiB RAM
+      
+Peak mỗi pod agent (1 pipeline):
+
+  - CPU: ~2–2.5 vCPU
+  - RAM: ~4–5 GiB
