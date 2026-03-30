@@ -564,3 +564,9 @@ spec:
     limits.memory: "220Gi"
     pods: "60"                # tối đa 60 pod (agents + controller)
 ```
+
+Tác dụng:
+
+Nếu Jenkins muốn tạo thêm pod agent vượt quá quota (ví dụ >60 pod) → pod sẽ Pending → job queue.
+
+Bảo vệ cluster khỏi bị “ăn” hết tài nguyên bởi CI.
