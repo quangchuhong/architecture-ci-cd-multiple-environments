@@ -544,3 +544,23 @@ jenkins:
             label: "maven-pod"
             namespace: "jenkins-test"
             instanceCapStr: "25"  # tối đa 25 pod kiểu này
+```
+
+### 11.5. ResourceQuota namespace Jenkins
+
+Trong namespace `jenkins-test`, đặt quota để giới hạn tổng CPU/RAM cho toàn bộ Jenkins agents:
+
+```yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: jenkins-agents-quota
+  namespace: jenkins-test
+spec:
+  hard:
+    requests.cpu: "80"        # tối đa 80 vCPU requested
+    limits.cpu: "100"
+    requests.memory: "160Gi"
+    limits.memory: "220Gi"
+    pods: "60"                # tối đa 60 pod (agents + controller)
+```
