@@ -567,6 +567,74 @@ spec:
 
 Tác dụng:
 
-Nếu Jenkins muốn tạo thêm pod agent vượt quá quota (ví dụ >60 pod) → pod sẽ Pending → job queue.
+  - Nếu Jenkins muốn tạo thêm pod agent vượt quá quota (ví dụ >60 pod) → pod sẽ Pending → job queue.
 
-Bảo vệ cluster khỏi bị “ăn” hết tài nguyên bởi CI.
+  - Bảo vệ cluster khỏi bị “ăn” hết tài nguyên bởi CI.
+
+---
+
+### 11.6. Tối ưu riêng cho môi trường Test (nhiều QA/Tester)
+
+1. Tách job “build artifact” và job “chạy test”:
+
+  - Build image/binary 1 lần (Dev pipeline).
+  - QA/Tester chạy job test (UI/API/regression) tái sử dụng image/binary đã build:
+    - Giảm số lần docker build.
+    - Giảm tải CPU/IO cho node CI-Agent.
+
+2. Cache Maven/NuGet/Python packages:
+
+  - Mount PVC cho ~/.m2/repository, .nuget, pip cache:
+    - Giảm thời gian build.
+    - Giảm tải network tới Maven Central/NuGet/PyPI.
+
+3. Ưu tiên dùng agent nhẹ cho test:
+
+  - Job chạy test tự động (không build) dùng agent nhẹ:
+    - Container chỉ cần runtime + test framework (pytest, junit, selenium…).
+    - resources: 0.5–1 vCPU, 1–2 GiB RAM.
+
+4. Scheduling khung giờ:
+
+  - Batch test lớn (regression full) nên chạy vào:
+    - ngoài giờ cao điểm Dev (tối/đêm/cuối tuần),
+    - hoặc dùng Jenkins throttleConcurrentBuilds để giới hạn.
+---
+### 11.7. Node group DevOps-Core
+
+Để đảm bảo các DevOps tools lõi (GitLab, Jenkins controller, SonarQube, Nexus) **không bị ảnh hưởng** khi CI load cao (nhiều Jenkins agent chạy), nên tách riêng 1 node group **DevOps-Core**.
+
+#### 11.7.1. Mục tiêu
+
+- Đảm bảo:
+  - GitLab luôn phản hồi tốt (MR, review, pipeline view).
+  - Jenkins controller không bị OOM/treo khi nhiều agent chạy.
+  - SonarQube, Nexus ổn định khi nhiều job phân tích/đẩy artifact.
+- Mọi tải build/test nặng (CPU/RAM/IO cao) **chỉ** chạy trên node group `ci-agent`.
+
+#### 11.7.2. Cấu hình gợi ý
+
+Node group `devops-core` trên `EKS-devops-test`:
+
+- instance type: `m5.xlarge` (4 vCPU, 16 GiB RAM)
+- node count: 3–4 node
+- dùng cho:
+  - Pod GitLab
+  - Pod Jenkins controller
+  - Pod SonarQube
+  - Pod Nexus
+  - (Optional) ArgoCD-test, monitoring core
+
+Node group `ci-agent`:
+
+- chỉ chạy Jenkins agents (pod build/test).
+
+#### 11.7.3. Taints & Tolerations (ý tưởng)
+
+1. **Thêm taint lên node devops-core**
+
+Ví dụ:
+
+```bash
+kubectl taint nodes <devops-core-node-name> role=devops-core:NoSchedule
+
