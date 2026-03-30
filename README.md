@@ -677,4 +677,36 @@ Tương tự cho GitLab, SonarQube, Nexus.
   - Khi QA/Tester/Dev bắn nhiều job:
     - Autoscaler chỉ mở rộng ci-agent nodes.
     - Hệ thống core DevOps vẫn ổn định, không bị “ăn hết” CPU/RAM.
+---
+## 12. Monitoring cho hạ tầng DevOps Tools trên EKS
+
+Mục tiêu:
+
+- Giám sát **trạng thái & hiệu năng** của:
+  - GitLab, Jenkins, SonarQube, Nexus, ArgoCD (nếu có)
+  - Cụm `EKS-devops-test`, `EKS-devops-prod`
+- Cảnh báo sớm khi:
+  - Jenkins queue dài, agent thiếu.
+  - GitLab/Sonar/Nexus lỗi, chậm.
+  - Node CPU/RAM/Storage gần full.
+  - Pod DevOps core bị CrashLoop/Restart nhiều.
+
+### 12.1. Kiến trúc monitoring tổng thể
+
+Trên mỗi cluster DevOps (`EKS-devops-test`, `EKS-devops-prod`) triển khai:
+
+- **Prometheus** – thu thập metrics.
+- **Grafana** – dashboard.
+- **Loki** (hoặc EFK: Elasticsearch + Fluentd + Kibana) – logging.
+- **Alertmanager** – cảnh báo (email, Slack, Teams…).
+
+Namespace gợi ý:
+
+```text
+EKS-devops-test:
+  monitoring/
+    - prometheus
+    - grafana
+    - loki / fluent-bit
+    - alertmanager
 
