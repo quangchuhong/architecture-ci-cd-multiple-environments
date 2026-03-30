@@ -424,3 +424,48 @@ Kiến trúc này áp dụng chung:
   - GitLab MR history, Jenkins build history, ArgoCD sync history.
 
 ---
+
+## 11. Sizing cho 100 pipeline concurrent (Dev + QA + Tester)
+
+Bối cảnh:
+
+- Nhiều QA, Tester, Dev cùng lúc chạy build/test trên **EKS-devops-test**.
+- Số lượng pipeline concurrent dự kiến: **~100** (đa số là Test).
+- Mỗi pipeline gồm 2–4 stage nặng:
+  - Build + Unit Test (Maven/Python/.NET/…)
+  - Docker build
+  - Security scan (Trivy/Black Duck)
+
+Mục tiêu:
+
+- Đảm bảo cụm **DevOps-Core** (GitLab, Jenkins master, SonarQube, Nexus) **luôn ổn định**.
+- Cho phép **30–40 pipeline nặng** chạy song song; phần còn lại chờ trong queue (Jenkins).
+- Tự động scale node group **CI-Agent** theo nhu cầu, tránh over-provision.
+
+---
+
+### 11.1. Phân tách node group
+
+Trên cluster `EKS-devops-test`:
+
+1. **Node group DevOps-Core** (ổn định):
+   - Chạy: Jenkins controller, GitLab, SonarQube, Nexus, ArgoCD-test (nếu có).
+   - Ví dụ:
+     - instance type: `m5.xlarge` (4 vCPU, 16 GiB)
+     - node count: 3–4 node (tùy tải).
+
+2. **Node group CI-Agent** (autoscale, chỉ cho Jenkins agents):
+   - Chạy: pod agent Jenkins (maven, docker, trivy, python, .net…).
+   - Autoscale theo số lượng pipeline.
+   - Sử dụng `nodeSelector` / `taints` để:
+     - DevOps-Core pod **không** chạy trên CI-Agent node.
+     - Jenkins agents **chỉ** chạy trên CI-Agent node.
+
+Ví dụ `nodeSelector` cho agents:
+
+```yaml
+# Trong podTemplate Jenkins
+spec:
+  nodeSelector:
+    role: ci-agent
+
