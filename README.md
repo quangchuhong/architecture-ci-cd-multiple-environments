@@ -637,4 +637,44 @@ Ví dụ:
 
 ```bash
 kubectl taint nodes <devops-core-node-name> role=devops-core:NoSchedule
+```
+Taint này có nghĩa: chỉ những pod nào có tolerations tương ứng mới được schedule lên node này.
+
+2. **Thêm tolerations cho các pod core**
+   
+Ví dụ (trong deployment Jenkins controller):
+
+```text
+spec:
+  template:
+    spec:
+      tolerations:
+        - key: "role"
+          operator: "Equal"
+          value: "devops-core"
+          effect: "NoSchedule"
+      nodeSelector:
+        role: devops-core
+```
+Tương tự cho GitLab, SonarQube, Nexus.
+
+3. Không thêm tolerations cho Jenkins agents
+   
+  - PodTemplate Jenkins agent (maven, docker, trivy, python, …) không khai báo tolerations với role=devops-core.
+  - Như vậy:
+    - Agents sẽ bị Kubernetes từ chối schedule lên node devops-core.
+    - Chỉ được chạy trên node group ci-agent.
+      
+#### 11.7.4. Kết quả
+
+  - Node group devops-core luôn chỉ chứa:
+    - GitLab
+    - Jenkins controller
+    - SonarQube
+    - Nexus
+  - Node group ci-agent chịu toàn bộ tải:
+    - Build/test, Docker build, Trivy/Black Duck scan.
+  - Khi QA/Tester/Dev bắn nhiều job:
+    - Autoscaler chỉ mở rộng ci-agent nodes.
+    - Hệ thống core DevOps vẫn ổn định, không bị “ăn hết” CPU/RAM.
 
