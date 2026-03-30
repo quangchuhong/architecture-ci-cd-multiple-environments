@@ -709,4 +709,105 @@ EKS-devops-test:
     - grafana
     - loki / fluent-bit
     - alertmanager
+```
+### 12.2. Metrics quan trọng theo từng tool
 
+**Jenkins**
+
+**- Controller:**
+
+  - JVM heap usage, GC time.
+  - Executor usage (% busy).
+  - Build queue length (số job đợi).
+  - Thời gian response HTTP.
+    
+**- Agents:**
+
+  - Số active agents.
+  - Thời gian spawn agent (từ pending → running).
+    
+**- Alert gợi ý:**
+
+  - Queue length > N trong M phút.
+  - Không có agent khả dụng trong X phút.
+  - Jenkins HTTP 5xx.
+    
+**- GitLab**
+  - Web/API:
+    - HTTP 4xx/5xx.
+    - Thời gian response.
+      
+  - Sidekiq:
+    - Job queue size, failed jobs.
+      
+  - Database:
+    - Connection count, slow queries (nếu có exporter).
+      
+  - Alert:
+    - HTTP 5xx tăng.
+    - Sidekiq queue backlog.
+      
+**- SonarQube**
+
+  - JVM:
+    - Heap usage, GC.
+      
+  - Background tasks:
+    - Thời gian xử lý analysis.
+    - Số task fail.
+      
+  - Alert:
+    - Background tasks failing liên tục.
+    - Memory usage > ~80% kéo dài.
+      
+**Nexus**
+
+  - JVM, thread count.
+  - Repository metrics:
+    - Request rate (QPS) / error rate.
+      
+  - Disk usage:
+    - Dung lượng volume Nexus (PVC) > 80–90%.
+      
+  - Alert:
+    - Disk > 80%.
+    - Error rate tăng bất thường.
+      
+**EKS (cluster & node)**
+
+  - Node:
+    - CPU, Memory, Disk, Pod count.
+      
+  - Pod:
+   - Restart count.
+   - CrashLoopBackOff.
+     
+**Alert:**
+
+  - Node NotReady.
+  - Pod core (GitLab/Jenkins/Sonar/Nexus) CrashLoop.
+
+### 12.3. Logging
+
+**Sử dụng Loki (hoặc EFK) để thu log:**
+
+  - Jenkins:
+    - jenkins container log.
+      
+  - GitLab:
+    - web, api, sidekiq, gitaly log.
+      
+  - SonarQube:
+    - web, ce, es log.
+      
+  - Nexus:
+    - application log.
+    - K8s events (optional).
+      
+**Từ đó:**
+  - Xây dashboard:
+    - Xem error rate theo service.
+    - Tìm lỗi build, lỗi deploy nhanh.
+      
+  - Alert:
+    - Keyword-based (ví dụ: SEVERE, FATAL, OutOfMemoryError).
