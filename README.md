@@ -473,20 +473,74 @@ spec:
 
 Với 1 Jenkins agent kiểu “maven + docker + trivy”:
 
-  - Container maven:
-    
-    - requests: ~0.5 vCPU, 1–2 GiB RAM
-    - limits: 1 vCPU, 2–3 GiB RAM
-      
-  - Container docker:
-    - requests: ~0.5 vCPU, 1 GiB RAM
-    - limits: 1 vCPU, 2 GiB RAM
-      
-  - Container trivy:
-    - requests: ~0.3 vCPU, 0.5–1 GiB RAM
-    - limits: 0.5 vCPU, 1–2 GiB RAM
-      
-Peak mỗi pod agent (1 pipeline):
+- Container `maven`:
+  - requests: ~0.5 vCPU, 1–2 GiB RAM
+  - limits: 1 vCPU, 2–3 GiB RAM
+- Container `docker`:
+  - requests: ~0.5 vCPU, 1 GiB RAM
+  - limits: 1 vCPU, 2 GiB RAM
+- Container `trivy`:
+  - requests: ~0.3 vCPU, 0.5–1 GiB RAM
+  - limits: 0.5 vCPU, 1–2 GiB RAM
 
-  - CPU: ~2–2.5 vCPU
-  - RAM: ~4–5 GiB
+**Peak mỗi pod agent (1 pipeline):**
+
+- CPU: ~2–2.5 vCPU  
+- RAM: ~4–5 GiB
+
+---
+
+### 11.3. Sizing CI-Agent node group cho ~100 pipeline
+
+Thực tế không nên cho 100 pipeline **đều peak cùng lúc**, mà:
+
+- Cho phép **30–40 pipeline nặng** chạy song song.
+- Các pipeline còn lại vào queue (Jenkins quản lý).
+
+#### Phương án 1 – nhiều node vừa (linh hoạt)
+
+- Node group `ci-agent`:
+  - instance type: `m5.xlarge` (4 vCPU, 16 GiB RAM)
+  - min: 0–2 node
+  - max: 20–25 node
+
+Tổng tài nguyên tối đa:
+
+- CPU: 4 * 25 = 100 vCPU  
+- RAM: 16 * 25 = 400 GiB
+
+→ Cho phép ~30–40 pod agent nặng chạy song song (mỗi pod ~2–2.5 vCPU).
+
+#### Phương án 2 – ít node to hơn
+
+- Node group `ci-agent`:
+  - instance type: `m5.2xlarge` (8 vCPU, 32 GiB RAM)
+  - min: 0–1 node
+  - max: 10–12 node
+
+Tổng tài nguyên tối đa:
+
+- CPU: 8 * 12 = 96 vCPU  
+- RAM: 32 * 12 = 384 GiB
+
+→ Tương tự, đủ cho ~30–40 pipeline nặng.
+
+---
+
+### 11.4. Giới hạn trong Jenkins (Kubernetes Cloud)
+
+Để tránh agent “nở” quá nhiều pod:
+
+Ví dụ JCasC (hoặc config Jenkins) cho Kubernetes Cloud:
+
+```yaml
+jenkins:
+  clouds:
+    - kubernetes:
+        name: "kubernetes"
+        containerCapStr: "50"   # tổng agents tối đa toàn cloud
+        templates:
+          - name: "maven-docker-trivy"
+            label: "maven-pod"
+            namespace: "jenkins-test"
+            instanceCapStr: "25"  # tối đa 25 pod kiểu này
