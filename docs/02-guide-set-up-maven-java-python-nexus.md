@@ -128,3 +128,45 @@ mvn clean package
 Quan sát:
 
   - Maven download dependency qua Nexus (URL .../maven-public/...).
+
+---
+
+## 5. Cấu hình Python (PyPI) trên Nexus OSS
+
+### 5.1. Tạo repo PyPI
+
+Trong Nexus UI → **Repositories**:
+
+  1. PyPI proxy
+     
+    - Create → pypi (proxy)
+      - Name: pypi-proxy
+      - Remote storage: https://pypi.org/
+      
+  2. PyPI hosted (internal)
+    - Create → pypi (hosted)
+      - Name: pypi-hosted
+        
+  3. PyPI group
+    - Create → pypi (group)
+      - Name: pypi-all
+      - Members:
+        - pypi-hosted
+        - pypi-proxy
+          
+Endpoint group:
+```text
+http://nexus.gitlabonlinecom.click/repository/pypi-all/simple
+
+```
+---
+## 6. Cấu hình Python/pip trên client Amazon Linux 2
+
+### 6.1. Cài Python & pip
+```text
+sudo yum install python3 python3-pip -y
+
+python3 --version
+pip3 --version
+
+```
