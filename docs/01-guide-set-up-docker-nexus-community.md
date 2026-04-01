@@ -353,7 +353,8 @@ Bảng dưới tập trung vào các điểm ảnh hưởng trực tiếp tới 
   Cộng thêm biến phí theo:
   Bao nhiêu GB artifact đang lưu trên Nexus Cloud,
   Bao nhiêu GB được client tải xuống mỗi tháng.
-  Ngoài Nexus Cloud, họ vẫn có bản self-hosted/on‑prem/pro (giá báo riêng qua sales, thường là subscription năm). Đoạn bạn paste là để định hướng: nếu muốn bắt đầu dùng Nexus như SaaS, thì chi phí entry‑level khoảng 135$/tháng, sau đó tuỳ egress/storage thực tế.
+  Ngoài Nexus Cloud, họ vẫn có bản self-hosted/on‑prem/pro (giá báo riêng qua sales, thường là subscription năm).
+  Đoạn bạn paste là để định hướng: nếu muốn bắt đầu dùng Nexus như SaaS, thì chi phí entry‑level khoảng 135$/tháng, sau đó tuỳ egress/storage thực tế.
 ```
 
 ---
