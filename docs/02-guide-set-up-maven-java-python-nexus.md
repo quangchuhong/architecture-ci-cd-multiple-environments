@@ -170,3 +170,77 @@ python3 --version
 pip3 --version
 
 ```
+### 5.2. Cấu hình pip dùng Nexus
+
+Tạo ~/.pip/pip.conf
+```text
+mkdir -p ~/.pip
+cat > ~/.pip/pip.conf << 'EOF'
+[global]
+index-url = http://nexus.gitlabonlinecom.click/repository/pypi-all/simple
+trusted-host = nexus.gitlabonlinecom.click
+EOF
+
+```
+
+### 5.3. Test pip với Nexus
+```text
+pip3 install requests
+pip3 install flask
+
+```
+Quan sát:
+
+  - pip download package từ http://nexus.gitlabonlinecom.click/repository/pypi-all/simple/...
+
+---
+
+## 6. Upload Python package lên Nexus (PyPI hosted)
+   
+### 6.1. Cài công cụ build & upload
+```bash
+pip3 install build twine
+
+```
+### 6.2. Tạo project Python đơn giản
+```bash
+mkdir pypi-nexus-test
+cd pypi-nexus-test
+
+cat > setup.py << 'EOF'
+from setuptools import setup, find_packages
+
+setup(
+    name="pypi-nexus-test",
+    version="0.1.0",
+    packages=find_packages(),
+)
+EOF
+
+mkdir pypi_nexus_test
+touch pypi_nexus_test/__init__.py
+
+```
+### 6.3. Build package
+```bash
+python3 -m build
+# tạo dist/*.tar.gz, *.whl
+
+```
+### 6.4. Upload lên pypi-hosted
+```text
+twine upload \
+  --repository-url http://nexus.gitlabonlinecom.click/repository/pypi-hosted/ \
+  dist/*
+
+```
+
+Nếu Nexus yêu cầu auth, twine sẽ hỏi username/password tương ứng user Nexus cho PyPI.
+
+Sau đó cấu trúc group pypi-all đã chứa cả hosted + proxy, pip client sẽ:
+
+  - Lấy package nội bộ từ pypi-hosted,
+  - Lấy package bên ngoài từ pypi-proxy nếu hosted không có.
+    
+---
+
