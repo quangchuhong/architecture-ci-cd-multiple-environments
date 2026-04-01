@@ -105,3 +105,67 @@ spec:
     - name: docker-proxy
       port: 8002
       targetPort: 8002
+```
+
+### 4.2. Ingress cho từng endpoint
+  - **Proxy** (docker-proxy.gitlabonlinecom.click):
+```text
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nexus-docker-proxy
+  namespace: nexus
+  annotations:
+    alb.ingress.kubernetes.io/group.name: alb-apps
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/success-codes: "200-401"
+    alb.ingress.kubernetes.io/subnets: <subnet-ids>
+spec:
+  ingressClassName: alb
+  rules:
+    - host: docker-proxy.gitlabonlinecom.click
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexus-docker
+                port:
+                  number: 8002
+
+```
+  - **Internal hosted** (docker-internal.gitlabonlinecom.click):
+```text
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nexus-docker-hosted
+  namespace: nexus
+  annotations:
+    alb.ingress.kubernetes.io/group.name: alb-apps
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /v2/_catalog
+    alb.ingress.kubernetes.io/success-codes: "200-399"
+    alb.ingress.kubernetes.io/subnets: <subnet-ids>
+spec:
+  ingressClassName: alb
+  rules:
+    - host: docker-internal.gitlabonlinecom.click
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexus-docker
+                port:
+                  number: 8000
+
+```
+    
