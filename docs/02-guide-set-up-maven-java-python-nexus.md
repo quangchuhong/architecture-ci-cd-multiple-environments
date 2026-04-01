@@ -131,9 +131,9 @@ Quan sát:
 
 ---
 
-## 5. Cấu hình Python (PyPI) trên Nexus OSS
+## 4. Cấu hình Python (PyPI) trên Nexus OSS
 
-### 5.1. Tạo repo PyPI
+### 4.1. Tạo repo PyPI
 
 Trong Nexus UI → **Repositories**:
 
@@ -160,9 +160,9 @@ http://nexus.gitlabonlinecom.click/repository/pypi-all/simple
 
 ```
 ---
-## 6. Cấu hình Python/pip trên client Amazon Linux 2
+## 5. Cấu hình Python/pip trên client Amazon Linux 2
 
-### 6.1. Cài Python & pip
+### 5.1. Cài Python & pip
 ```text
 sudo yum install python3 python3-pip -y
 
