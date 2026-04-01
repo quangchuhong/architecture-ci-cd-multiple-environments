@@ -355,3 +355,26 @@ Lưu ý bash:
 
 Nếu password có ký tự đặc biệt như !, nên dùng 'user:pass' trong single-quote hoặc dùng file ~/.netrc để tránh lỗi shell.
 
+---
+### 8.3. Download file từ RAW repo
+
+Có thể tải bằng browser hoặc curl/wget.
+
+Ví dụ:
+```text
+# Download bằng curl
+curl -O \
+  "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/dev-backend/shopping-cart/app-1.0.0.jar"
+
+# Download bằng wget
+wget "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/aws/awscliv2.zip"
+
+```
+
+Nếu repo không anonymous-read, thêm -u user:pass:
+
+```text
+curl -u user:pass -O "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/aws/awscliv2.zip"
+
+```
+
