@@ -301,3 +301,57 @@ Với Amazon Linux 2/2023, các repo hệ điều hành (amzn2-core, amazonlinux
 Thường bạn không cần proxy các repo này trừ khi môi trường air-gapped.
 Proxy EPEL/third-party qua Nexus là phổ biến hơn.
 ```
+---
+
+## 8. Cấu hình RAW repository trên Nexus OSS để upload / download file, artifact
+
+RAW repo dùng để lưu **bất kỳ loại file nào**: `.zip`, `.rar`, `.tar.gz`, `.jar`, `.war`, `.exe`, `.msi`, `.sh`, `.ps1`, report, log…  
+Rất tiện để làm “shared artifacts” / “installer store” nội bộ.
+
+---
+
+### 8.1. Tạo RAW hosted repo trong Nexus
+
+Trong Nexus UI:
+
+1. Vào **Administration → Repositories → Create repository → raw (hosted)**  
+2. Điền:
+   - **Name**: `raw-artifacts` (hoặc `files-internal`, `aws-tools`, `installers`…)
+   - (Các option khác để mặc định)
+3. Bấm **Create**.
+
+Khi đó endpoint:
+
+```text
+http://nexus.gitlabonlinecom.click/repository/raw-artifacts/
+```
+
+### 8.2. Upload file bằng curl (CI/CD, script)
+
+Cú pháp chung:
+```text
+curl -u <user>:<pass> \
+  --upload-file <local-file> \
+  "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/<path-trong-repo>/<file-name>"
+
+```
+
+Ví dụ upload file .zip:
+
+```text
+curl -u admin:MyPassword \
+  --upload-file awscliv2.zip \
+  "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/aws/awscliv2.zip"
+
+```
+Upload artifact build từ Jenkins (ví dụ target/app-1.0.0.jar):
+```text
+curl -u jenkins-ci:*** \
+  --upload-file target/app-1.0.0.jar \
+  "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/dev-backend/shopping-cart/app-1.0.0.jar"
+
+```
+_Lưu ý bash:
+
+Nếu password có ký tự đặc biệt như !, nên dùng 'user:pass' trong single-quote hoặc dùng file ~/.netrc để tránh lỗi shell.
+_
