@@ -340,3 +340,15 @@ Bảng dưới tập trung vào các điểm ảnh hưởng trực tiếp tới 
     - Muốn đơn giản hoá CI/CD (push thẳng vào group),
     - Cần tính năng security/policy/HA ở mức enterprise.
 
+---
+
+### 8. Gợi ý khi tích hợp vào CI/CD (Jenkins)
+
+  - Pipeline base-image (DevOps/SEC):
+    - Pull từ docker-proxy.gitlabonlinecom.click (repo proxy)
+    - Scan Trivy/Black Duck
+    - Push sang docker-internal.gitlabonlinecom.click/dev-backend/... (repo hosted)
+      
+  - Pipeline ứng dụng:
+    - Chỉ dùng base đã “approved” ở hosted.
+    - Chỉ push/pull vào docker-internal.gitlabonlinecom.click/<dept>/... bằng user/role phòng ban.
