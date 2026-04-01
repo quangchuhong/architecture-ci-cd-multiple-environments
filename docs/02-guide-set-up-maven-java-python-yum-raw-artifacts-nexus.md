@@ -377,4 +377,42 @@ Nếu repo không anonymous-read, thêm -u user:pass:
 curl -u user:pass -O "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/aws/awscliv2.zip"
 
 ```
+### 8.4. Gợi ý cấu trúc thư mục trong RAW repo
 
+Nên đặt cấu trúc path có ý nghĩa:
+```text
+raw-artifacts/
+  dev-backend/
+    shopping-cart/
+      app-1.0.0.jar
+      app-1.0.1.jar
+    tools/
+      my-cli-0.1.0.zip
+
+  qa/
+    reports/
+      regression-2026-04-01.html
+
+  aws/
+    awscliv2.zip
+    eksctl_Linux_amd64.tar.gz
+
+  installers/
+    windows/
+      myapp-setup-1.0.0.msi
+    linux/
+      myapp-install-1.0.0.sh
+
+```
+### 8.5. Phân quyền RAW repo (tùy chọn)
+
+Giống Docker/Maven:
+
+  - Tạo role cho từng phòng ban:
+    - raw-dev, raw-qa, raw-db…
+  - Dùng Content Selector nếu cần giới hạn theo prefix:
+    - Ví dụ selector path =^ "dev-backend/" cho team dev-backend.
+  - Gán role cho user/CI tương ứng, để:
+    - Jenkins dev chỉ upload vào dev-backend/**,
+    - QA chỉ upload vào qa/**, v.v.
+---
