@@ -351,7 +351,7 @@ curl -u jenkins-ci:*** \
   "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/dev-backend/shopping-cart/app-1.0.0.jar"
 
 ```
-_Lưu ý bash:
+Lưu ý bash:
 
 Nếu password có ký tự đặc biệt như !, nên dùng 'user:pass' trong single-quote hoặc dùng file ~/.netrc để tránh lỗi shell.
-_
+
