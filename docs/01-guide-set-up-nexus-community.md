@@ -168,4 +168,38 @@ spec:
                   number: 8000
 
 ```
-    
+---
+## 5. Cấu hình Docker client trên Amazon Linux 2 (hoặc Jenkins agent)
+
+/etc/docker/daemon.json:
+```text
+{
+  "insecure-registries": [
+    "docker-internal.gitlabonlinecom.click",
+    "docker-proxy.gitlabonlinecom.click"
+  ]
+}
+
+```
+
+Restart Docker:
+```text
+sudo systemctl restart docker
+
+```
+**Test proxy:**
+```text
+docker login --username docker-proxy docker-proxy.gitlabonlinecom.click
+docker pull docker-proxy.gitlabonlinecom.click/library/nginx:1.25
+
+```
+**Test hosted:**
+```text
+docker login docker-internal.gitlabonlinecom.click
+docker tag nginx:1.25 docker-internal.gitlabonlinecom.click/dev-backend/nginx:1.25
+docker push docker-internal.gitlabonlinecom.click/dev-backend/nginx:1.25
+docker pull docker-internal.gitlabonlinecom.click/dev-backend/nginx:1.25
+
+```
+---
+
