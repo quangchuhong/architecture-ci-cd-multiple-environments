@@ -305,4 +305,38 @@ withCredentials([usernamePassword(
     nếu cần siết “deploy đúng prefix” trên K8s, nên kết hợp thêm policy Kyverno.
   - Giới hạn: để login & browse repo, Nexus thường yêu cầu thêm 1 số privilege read/browse view-level → rất khó chặn pull theo path tuyệt đối bằng Nexus OSS (như đã phân tích).
   - Giải pháp bổ sung: dùng Kyverno/OPA trên K8s để giới hạn image prefix theo namespace.
+---
+
+## 7. So sánh nhanh: Nexus OSS vs Nexus Pro (liên quan Docker & RBAC)
+
+Bảng dưới tập trung vào các điểm ảnh hưởng trực tiếp tới thiết kế Docker Registry & phân quyền (RBAC) trong kiến trúc CI/CD:
+
+| Tính năng / Khía cạnh                         | Nexus OSS (Community)                                                           | Nexus Pro (Thương mại)                                                     |
+|----------------------------------------------|---------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| **Loại repo Docker**                         | Hỗ trợ: `docker (hosted)`, `docker (proxy)`, `docker (group)`                  | Giống OSS                                                                  |
+| **Deploy (push) vào group repo**             | **KHÔNG hỗ trợ** – push vào group bị chặn, chỉ dùng group để pull              | **CÓ hỗ trợ** – cho phép push trực tiếp vào group                          |
+| **RBAC (User / Role / Privilege)**           | Có, nhưng cấu hình chi tiết bằng Privilege ID; dễ “dính” quyền rộng ngoài ý   | Có, UI & tính năng RBAC đầy đủ hơn, hỗ trợ use case enterprise tốt hơn    |
+| **Content Selector (lọc theo path)**         | Có; dùng CSEL + Repository Content Selector; áp dụng được cho Docker           | Có; tích hợp sâu hơn, dễ kết hợp với policy nâng cao                      |
+| **Chặn push theo path (namespace)**          | Làm được (ví dụ chỉ cho phép push `dev-backend/**`)                            | Làm được; kết hợp tốt với các tính năng RBAC khác                         |
+| **Chặn pull theo path (chặt tuyệt đối)**     | Khó / giới hạn – do cần `read/browse` view-level để login; khó cấm chỉ 1 prefix| Làm tốt hơn với cơ chế RBAC & policy nâng cao                             |
+| **Tích hợp scan/policy (security)**          | Không có IQ/Policy server kèm; phải dùng tool ngoài (Trivy, Black Duck, …)     | Có thể tích hợp **IQ Server** (policy, license, vuln scan, gate build)    |
+| **High Availability / Cluster**              | Không – 1 node (single instance)                                               | Có – hỗ trợ HA, multi-node, replication                                   |
+| **Quản lý & audit multi-team / multi-project** | Cơ bản; phải tự tổ chức repo/role/selector thủ công                            | Có tính năng & UI giúp quản lý nhiều team/dự án dễ hơn                    |
+| **Support chính thức từ Sonatype**           | Không (dùng community channel)                                                 | Có (support enterprise, SLA, tư vấn)                                      |
+| **Giá / License**                             | Miễn phí (OSS, Apache 2.0)                                                     | Trả phí license + support                                                  |
+
+**Kết luận sử dụng trong kiến trúc này:**
+
+- **Nexus OSS**:  
+  - Phù hợp nếu:
+    - Muốn tiết kiệm chi phí license,
+    - Số team / dự án không quá lớn,
+    - Chấp nhận:
+      - Push được giới hạn theo path (nhờ Content Selector),
+      - Pull theo path khó siết tuyệt đối → bù lại bằng policy ở K8s (Kyverno, OPA).
+- **Nexus Pro**:  
+  - Nên cân nhắc khi:
+    - Có nhiều team/phòng ban, yêu cầu phân quyền & audit chặt,
+    - Muốn đơn giản hoá CI/CD (push thẳng vào group),
+    - Cần tính năng security/policy/HA ở mức enterprise.
 
