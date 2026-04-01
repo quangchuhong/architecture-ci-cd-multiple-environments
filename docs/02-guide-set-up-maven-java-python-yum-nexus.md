@@ -244,3 +244,60 @@ Sau đó cấu trúc group pypi-all đã chứa cả hosted + proxy, pip client 
     
 ---
 
+## 7. YUM (rpm) qua Nexus
+
+Tùy yêu cầu:
+
+  - Nếu bạn chỉ muốn cache 1 số repo public (EPEL, CentOS, Alma…), dùng YUM proxy.
+  - Với Amazon Linux chính chủ, repo có dạng đặc biệt; proxy được nhưng thường không bắt buộc.
+    Dưới đây là pattern chung.
+    
+### 7.1. Tạo repo YUM proxy trên Nexus
+
+Vào Nexus:
+
+  - Create → yum (proxy) (hoặc yum (proxy hosted) tùy version)
+    - Name: yum-proxy-epel (ví dụ)
+    - Remote storage: URL của repo YUM bạn muốn proxy, ví dụ:
+      - https://download.fedoraproject.org/pub/epel/9/Everything/x86_64/(chỉ là ví dụ, tùy OS bạn dùng)
+        
+Sau khi tạo xong, bạn sẽ có URL:
+```text
+http://nexus.gitlabonlinecom.click/repository/yum-proxy-epel/
+
+```
+
+### 7.2. Cấu hình YUM trên Amazon Linux dùng Nexus
+Trên client:
+
+Tạo file /etc/yum.repos.d/nexus-epel.repo:
+```text
+[nexus-epel]
+name=Nexus EPEL Proxy
+baseurl=http://nexus.gitlabonlinecom.click/repository/yum-proxy-epel/
+enabled=1
+gpgcheck=0
+
+```
+Tắt hoặc ưu tiên thấp các repo EPEL gốc nếu bạn muốn tất cả đi qua Nexus.
+
+Cập nhật metadata:
+```bash
+sudo yum clean all
+sudo yum makecache
+
+```
+Test:
+```text
+sudo yum install htop
+
+```
+Nếu gói có trong EPEL, yum sẽ kéo qua Nexus proxy.
+
+Lưu ý:  
+
+```text
+Với Amazon Linux 2/2023, các repo hệ điều hành (amzn2-core, amazonlinux) có thể không đơn giản để proxy, vì có auth/region/metadata riêng. 
+Thường bạn không cần proxy các repo này trừ khi môi trường air-gapped.
+Proxy EPEL/third-party qua Nexus là phổ biến hơn.
+```
