@@ -71,3 +71,60 @@ sudo yum install maven -y
 
 java -version
 mvn -version
+```
+
+### 3.2. Cấu hình settings.xml để dùng Nexus
+
+Tạo (hoặc sửa) file ~/.m2/settings.xml:
+
+```text
+mkdir -p ~/.m2
+cat > ~/.m2/settings.xml << 'EOF'
+<settings>
+  <mirrors>
+    <mirror>
+      <id>nexus</id>
+      <mirrorOf>*</mirrorOf>
+      <url>http://nexus.gitlabonlinecom.click/repository/maven-public/</url>
+    </mirror>
+  </mirrors>
+
+  <profiles>
+    <profile>
+      <id>nexus</id>
+      <repositories>
+        <repository>
+          <id>central</id>
+          <url>http://nexus.gitlabonlinecom.click/repository/maven-public/</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
+
+  <activeProfiles>
+    <activeProfile>nexus</activeProfile>
+  </activeProfiles>
+</settings>
+EOF
+
+```
+### 3.3. Test Maven với Nexus
+
+Tạo project test:
+```text
+mvn -B archetype:generate \
+  -DgroupId=com.example \
+  -DartifactId=nexus-maven-test \
+  -DarchetypeArtifactId=maven-archetype-quickstart \
+  -DarchetypeVersion=1.4 \
+  -DinteractiveMode=false
+
+cd nexus-maven-test
+mvn clean package
+
+```
+Quan sát:
+
+  - Maven download dependency qua Nexus (URL .../maven-public/...).
