@@ -339,6 +339,22 @@ Bảng dưới tập trung vào các điểm ảnh hưởng trực tiếp tới 
     - Có nhiều team/phòng ban, yêu cầu phân quyền & audit chặt,
     - Muốn đơn giản hoá CI/CD (push thẳng vào group),
     - Cần tính năng security/policy/HA ở mức enterprise.
+   
+**- Nexus Repository Cloud (bản SaaS của Sonatype), chứ không phải bản self‑hosted on‑prem trực tiếp, và ý chính là:
+**
+```text
+  Giá bắt đầu: từ $135/tháng + “consumption”.
+  Consumption (đối với bản Cloud) =
+  Egress: tổng dung lượng tải xuống từ Nexus Cloud (GB/tháng),
+  Storage: tổng dung lượng artifact lưu trong blob store Nexus Cloud (GB).
+  Tức là:
+  
+  Bạn trả phần “cố định” (135$/tháng),
+  Cộng thêm biến phí theo:
+  Bao nhiêu GB artifact đang lưu trên Nexus Cloud,
+  Bao nhiêu GB được client tải xuống mỗi tháng.
+  Ngoài Nexus Cloud, họ vẫn có bản self-hosted/on‑prem/pro (giá báo riêng qua sales, thường là subscription năm). Đoạn bạn paste là để định hướng: nếu muốn bắt đầu dùng Nexus như SaaS, thì chi phí entry‑level khoảng 135$/tháng, sau đó tuỳ egress/storage thực tế.
+```
 
 ---
 
