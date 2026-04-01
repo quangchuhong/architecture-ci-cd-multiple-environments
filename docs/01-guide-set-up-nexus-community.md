@@ -303,4 +303,6 @@ withCredentials([usernamePassword(
   - Với Nexus OSS, mô hình trên chặn tốt push theo path,
   - Pull theo path vẫn có thể rộng hơn nếu bạn thêm các privilege read/browse toàn repo;
     nếu cần siết “deploy đúng prefix” trên K8s, nên kết hợp thêm policy Kyverno.
+  - Giới hạn: để login & browse repo, Nexus thường yêu cầu thêm 1 số privilege read/browse view-level → rất khó chặn pull theo path tuyệt đối bằng Nexus OSS (như đã phân tích).
+  - Giải pháp bổ sung: dùng Kyverno/OPA trên K8s để giới hạn image prefix theo namespace.
 
