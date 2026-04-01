@@ -203,3 +203,104 @@ docker pull docker-internal.gitlabonlinecom.click/dev-backend/nginx:1.25
 ```
 ---
 
+## 6. Phân quyền Docker theo phòng ban trên Nexus OSS
+
+Mô hình:
+
+- 1 repo hosted: `docker-hosted`
+- Quy ước path image theo: **phòng ban / môi trường / dự án**:
+
+```text
+docker-internal.gitlabonlinecom.click/<dept>/<env>/<project>/<image>:<tag>
+
+# Ví dụ:
+docker-internal.gitlabonlinecom.click/dev-backend/test/shopping-cart/api:1.0.0
+docker-internal.gitlabonlinecom.click/qa/test/shopping-cart/test-runner:20260331
+```
+
+### 6.1. Content Selector cho dev-backend
+
+Vào **Administration → Security → Content Selectors → Create selector:**
+
+  - Name: docker-dev-backend-selector
+  - Expression:
+```text
+format == "docker" and path =~ "^/v2/dev-backend(/.*)?$"
+
+```
+Giải thích:
+
+  - format == "docker": chỉ áp dụng cho repo Docker.
+  - path =~ "^/v2/dev-backend(/.*)?$": chỉ match các HTTP path dạng:
+    - /v2/dev-backend
+    - /v2/dev-backend/...
+
+### 6.2. Privilege từ Content Selector
+
+Vào Security → Privileges → Create privilege → Repository Content Selector:
+
+  - Repository: docker-hosted
+  - Content Selector: docker-dev-backend-selector
+  - Actions: read, browse, add, edit
+  - ID: docker-hosted-dev-backend-rw
+    
+Privilege này cho phép read/browse/add/edit chỉ trong path dev-backend/** của repo docker-hosted.
+
+### 6.3. Role & User cho phòng Dev-backend
+
+Tạo Role:
+
+  - Vào Security → Roles → Create role
+    - ID: docker-dev-backend
+    - Name: Docker Dev Backend
+    - Privileges:
+      - docker-hosted-dev-backend-rw
+      - (tuỳ chọn) nx-anonymous nếu bạn muốn user này cũng có read/browse cơ bản như anonymous
+        
+Tạo User:
+
+  - Vào Security → Users → Create local user
+    - User ID: docker-dev-backend (hoặc dev-backend-ci)
+    - Password: (mạnh, dùng cho CI)
+    - Roles:
+      - docker-dev-backend
+
+### 6.4. Sử dụng trên client / Jenkins
+
+Trên client (Amazon Linux 2 / Jenkins agent):
+```text
+docker login docker-internal.gitlabonlinecom.click -u docker-dev-backend
+
+# OK: dev-backend/*
+docker build -t docker-internal.gitlabonlinecom.click/dev-backend/my-app:1.0.0 .
+docker push docker-internal.gitlabonlinecom.click/dev-backend/my-app:1.0.0
+
+# Bị chặn (unauthorized) nếu push namespace khác:
+docker push docker-internal.gitlabonlinecom.click/dev-frontend/my-app:1.0.0
+
+```
+
+Trong Jenkins:
+```text
+withCredentials([usernamePassword(
+  credentialsId: 'nexus-docker-dev-backend',
+  usernameVariable: 'REG_USER',
+  passwordVariable: 'REG_PASS'
+)]) {
+  sh """
+    echo "${REG_PASS}" | docker login docker-internal.gitlabonlinecom.click -u "${REG_USER}" --password-stdin
+
+    docker build -t docker-internal.gitlabonlinecom.click/dev-backend/my-app:${IMAGE_TAG} .
+    docker push docker-internal.gitlabonlinecom.click/dev-backend/my-app:${IMAGE_TAG}
+
+    docker logout docker-internal.gitlabonlinecom.click
+  """
+}
+
+```
+  Lưu ý:  
+
+  - Với Nexus OSS, mô hình trên chặn tốt push theo path,
+  - Pull theo path vẫn có thể rộng hơn nếu bạn thêm các privilege read/browse toàn repo;
+    nếu cần siết “deploy đúng prefix” trên K8s, nên kết hợp thêm policy Kyverno.
+
