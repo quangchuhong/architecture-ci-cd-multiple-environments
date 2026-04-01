@@ -340,8 +340,8 @@ Bảng dưới tập trung vào các điểm ảnh hưởng trực tiếp tới 
     - Muốn đơn giản hoá CI/CD (push thẳng vào group),
     - Cần tính năng security/policy/HA ở mức enterprise.
    
-**- Nexus Repository Cloud (bản SaaS của Sonatype), chứ không phải bản self‑hosted on‑prem trực tiếp, và ý chính là:
-**
+**- Nexus Repository Cloud (bản SaaS của Sonatype), chứ không phải bản self‑hosted on‑prem trực tiếp, và ý chính là:**
+
 ```text
   Giá bắt đầu: từ $135/tháng + “consumption”.
   Consumption (đối với bản Cloud) =
