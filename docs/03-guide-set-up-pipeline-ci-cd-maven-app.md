@@ -15,9 +15,12 @@ Các hệ thống liên quan:
         - GitLab gitops-repo: repo GitOps ArgoCD (thư mục test/staging/prod)
         - ArgoCD: tự deploy theo GitOps repo cho Test & Staging
 
-<img width="1070" height="307" alt="image" src="https://github.com/user-attachments/assets/2f0378b6-9b8c-4b4c-832d-0d33cee1e275" />
 
 #### workflow pipeline
+
+
+<img width="1070" height="307" alt="image" src="https://github.com/user-attachments/assets/2f0378b6-9b8c-4b4c-832d-0d33cee1e275" />
+
 
 ```text
         ┌────────────┐
