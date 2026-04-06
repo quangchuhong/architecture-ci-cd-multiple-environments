@@ -12,6 +12,22 @@
   - `mvn -B clean package`  
     → build + test + package (không skip test).
 
+- Spring Boot  
+
+  - Là framework ứng dụng Java (dựng app, REST API, data, security…).
+  - Nó lo phần chạy ứng dụng: DI, cấu hình Bean, web server (Tomcat), JPA, Security…
+    
+- Mockito  
+
+  - Là thư viện test (framework mock) dùng trong unit test.
+  - Dùng để tạo mock/stub cho dependency (repository, service, client…) khi test logic của 1 class.
+  - Không chạy app, không thay thế Spring; chỉ dùng trong src/test/java.
+    
+- Trong project Spring Boot:
+
+  - Spring Boot: bạn dùng để viết service/controller/repo.
+  - Mockito: bạn dùng trong test (thường kết hợp JUnit) để test service/repo mà không cần khởi động Spring.
+
 ---
 
 ### 2. Lifecycle Maven liên quan đến test
