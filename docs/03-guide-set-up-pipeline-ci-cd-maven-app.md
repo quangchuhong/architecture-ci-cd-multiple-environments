@@ -1,3 +1,24 @@
+## Tổng quan workflow pipeline
+
+Pipeline chạy trên Jenkins K8s agent (maven-pod) với 4 container chính:
+
+        - jnlp: agent Jenkins
+        - maven: build/test/sonar
+        - docker: build image, save TAR, push Nexus
+        - trivy: scan image từ file TAR
+        
+Các hệ thống liên quan:
+
+        - Nexus Docker internal: docker-internal.gitlabonlinecom.click/dev-backend/...
+        - Nexus RAW: lưu file .tar image
+        - SonarQube: scan source + Quality Gate
+        - GitLab gitops-repo: repo GitOps ArgoCD (thư mục test/staging/prod)
+        - ArgoCD: tự deploy theo GitOps repo cho Test & Staging
+
+<img width="1070" height="307" alt="image" src="https://github.com/user-attachments/assets/2f0378b6-9b8c-4b4c-832d-0d33cee1e275" />
+
+#### workflow pipeline
+
 ```text
         ┌────────────┐
         │   Dev      │
