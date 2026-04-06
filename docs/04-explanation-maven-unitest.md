@@ -96,3 +96,117 @@ class SomeServiceTest {
         verify(repo).find(...);
     }
 }
+```
+
+Trong dự án:
+
+  - CollectionAccountLinkageServiceTest
+  - CollectionBillingServiceTest
+  - QuartzJobServiceTest
+  - CollectionReconcileAppTest (test main() + config Tomcat/SSL)
+    
+đều là Mockito unit test, chạy rất nhanh, không dùng Spring context.
+---
+
+### 5. Spring Test (ít hơn, cho flow/config quan trọng)
+
+Khi cần test:
+
+  - wiring bean,
+  - mapping controller,
+  - query JPA,
+  - security…
+    
+có thể dùng:
+
+  - @SpringBootTest – full/near-full context (flow nhiều layer).
+  - @WebMvcTest – web layer (controller, filter, advice).
+  - @DataJpaTest – JPA + DB in-memory (H2).
+
+Mẫu:
+```java
+@SpringBootTest
+class SomeFlowIntegrationTest {
+    @Autowired
+    SomeService service;
+}
+
+@WebMvcTest(SomeController.class)
+class SomeControllerTest {
+    @Autowired
+    MockMvc mockMvc;
+    @MockBean
+    SomeService service;
+}
+
+@DataJpaTest
+class SomeRepositoryTest {
+    @Autowired
+    SomeRepository repo;
+}
+
+```
+
+Tỷ lệ khuyến nghị:
+
+  - 80–90% test = unit test + Mockito (nhanh, nhiều case nhỏ).
+  - 10–20% test = Spring Test (chọn flow/config quan trọng để cover).
+
+---
+
+### 6. Test data & constant
+
+Dự án hiện có các class chứa constant và JSON mẫu phục vụ test (không phải test case):
+
+- ConstantTest:
+  - profilesActive, jobId, dateRequest
+  - JSON config report (configReport, configJob),
+  - JSON billing, billingFail, billingJsonMappingFail…
+- Các JSON reportConfig trong test Quartz, report…
+  
+Cách dùng:
+
+- Import constant trong test để:
+  - parse JSON làm input,
+  - test mapping, generate report, xử lý điều kiện phức tạp.
+    
+Ví dụ:
+
+```java
+import static com.tcb.h2h.recon.collection.ConstantTest.billing;
+
+@Test
+void shouldParseBillingJson() {
+    // parse billing JSON, assert mapping/output...
+}
+
+```
+---
+
+### 7. Tích hợp vào Jenkins Pipeline
+
+Trong Jenkins (container maven):
+
+  - Stage Maven nên là:
+
+```text
+mvn -B clean package
+
+```
+
+- Pipeline hiện tại:
+  
+  1. Checkout + tính GIT_SHORT_SHA.
+  2. Maven build + test (unit & Spring Test).
+  3. SonarQube scan + Quality Gate.
+  4. Đóng gói JAR.
+  5. Build Docker, save TAR, upload Nexus RAW.
+  6. Trivy scan image từ TAR.
+  7. Push image lên Nexus Docker.
+  8. Update GitOps + ArgoCD deploy (Test → Staging), có manual approval + rollback.
+     
+Kết luận:
+
+  - Maven test (unit + Spring Test) là lớp bảo vệ đầu tiên trong CI.
+  - Chỉ sau khi mvn test/mvn package pass, pipeline mới tiếp tục build/push/deploy.
+  - Mockito được dùng để test nhanh logic nghiệp vụ, Spring Test dùng cho một số flow/config quan trọng.
