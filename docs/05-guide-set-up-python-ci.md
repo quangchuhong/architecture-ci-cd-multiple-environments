@@ -97,3 +97,30 @@ EXPOSE 5000
 CMD ["flask", "run", "--host=0.0.0.0"]
 
 ```
+
+5.2. Stage Docker Build + lưu TAR lên Nexus RAW
+
+Trong container docker:24-dind:
+
+Build image:
+  
+```text
+docker build -t docker-internal.gitlabonlinecom.click/dev-backend/flaskr:${IMAGE_TAG} .
+
+```
+
+Lưu TAR:
+```text
+TARFILE_NAME="image-flaskr-${IMAGE_TAG}.tar"
+docker save docker-internal.gitlabonlinecom.click/dev-backend/flaskr:${IMAGE_TAG} -o ${TARFILE_NAME}
+
+```
+
+Upload TAR lên Nexus RAW (repo raw-artifacts):
+
+```text
+curl -u "${NX_USER}:${NX_PASS}" \
+  --upload-file ${TARFILE_NAME} \
+  "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/dev-backend/docker-tar/${TARFILE_NAME}"
+
+```
