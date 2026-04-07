@@ -77,7 +77,7 @@ timeout(time: 5, unit: 'MINUTES') {
 
 ### 5. Build & scan Docker image
 
-5.1. Dockerfile (Python/Flask)
+#### 5.1. Dockerfile (Python/Flask)
 ```text
 FROM python:3.11-slim
 
@@ -98,7 +98,7 @@ CMD ["flask", "run", "--host=0.0.0.0"]
 
 ```
 
-5.2. Stage Docker Build + lưu TAR lên Nexus RAW
+#### 5.2. Stage Docker Build + lưu TAR lên Nexus RAW
 
 Trong container docker:24-dind:
 
