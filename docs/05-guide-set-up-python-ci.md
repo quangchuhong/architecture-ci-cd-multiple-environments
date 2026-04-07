@@ -7,6 +7,9 @@
 - Build **Docker image**, scan bảo mật bằng **Trivy**, push lên **Nexus Docker**.
 - (Tuỳ chọn) sau đó nối vào GitOps/ArgoCD giống pipeline Java.
 
+<img width="919" height="261" alt="image" src="https://github.com/user-attachments/assets/8df84685-e89d-419e-8128-bb0ed19f8fec" />
+
+
 ---
 
 ### 2. Cấu trúc app Flaskr
