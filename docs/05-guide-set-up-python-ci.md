@@ -124,3 +124,61 @@ curl -u "${NX_USER}:${NX_PASS}" \
   "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/dev-backend/docker-tar/${TARFILE_NAME}"
 
 ```
+
+### 6. Trivy scan image từ TAR (Nexus RAW)
+
+Trong container trivy:
+
+1. Tải TAR từ Nexus RAW:
+```text
+curl -u "${NX_USER}:${NX_PASS}" \
+  -o ${TARFILE_NAME} \
+  "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/dev-backend/docker-tar/${TARFILE_NAME}"
+
+```
+2. Scan bằng Trivy:
+```text
+trivy image --input ${TARFILE_NAME} --exit-code 0 --severity LOW,MEDIUM
+trivy image --input ${TARFILE_NAME} --exit-code 1 --severity HIGH,CRITICAL
+
+```
+---
+
+### 7. Push image lên Nexus Docker internal
+
+Trong container docker:
+
+```text
+docker login docker-internal.gitlabonlinecom.click -u ${REG_USER} --password-stdin
+docker push docker-internal.gitlabonlinecom.click/dev-backend/flaskr:${IMAGE_TAG}
+docker logout docker-internal.gitlabonlinecom.click
+
+```
+
+REG_USER/PASS là credentials Jenkins cho user Nexus có quyền trên docker-hosted.
+
+---
+
+### 8. (Tuỳ chọn) GitOps + ArgoCD như Java
+
+GitOps repo: có test/staging/prod/values.yaml cho app Flask.
+
+Jenkins update:
+```text
+image:
+  repository: docker-internal.gitlabonlinecom.click/dev-backend/flaskr
+  tag: <IMAGE_TAG>
+
+```
+
+ArgoCD:
+
+  - Application Test: trỏ vào develop/test/.
+  - Application Staging: trỏ vào release/APP_VERSION/staging/.
+  - Application Prod: trỏ vào main/prod/.
+    
+Flow promote + rollback giống y hệt pipeline Java:
+
+  1. CI trên develop: build/test/scan/push → update GitOps test → ArgoCD Test.
+  2. Manual approve → update GitOps staging (release/APP_VERSION) → ArgoCD Staging.
+  3. Nếu lỗi → rollback bằng git revert trên branch GitOps staging → ArgoCD sync rollback.
