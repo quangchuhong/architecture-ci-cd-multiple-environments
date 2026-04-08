@@ -150,3 +150,49 @@ Trong Jenkins (container docker:dind):
 docker build -t docker-internal.gitlabonlinecom.click/dev-frontend/my-node-app:${IMAGE_TAG} .
 
 ````
+---
+
+### 6. Trivy scan image
+
+Trong container trivy:
+```text
+trivy image --exit-code 0 --severity LOW,MEDIUM \
+  docker-internal.gitlabonlinecom.click/dev-frontend/my-node-app:${IMAGE_TAG}
+
+trivy image --exit-code 0 --severity HIGH,CRITICAL \
+  docker-internal.gitlabonlinecom.click/dev-frontend/my-node-app:${IMAGE_TAG}
+
+```
+
+  - Nếu muốn chặn build khi có vuln HIGH/CRITICAL → đổi --exit-code 0 thành 1 ở dòng thứ hai.
+
+--
+
+### 7. Push image lên Nexus Docker internal
+
+Trong container docker:
+```text
+docker login docker-internal.gitlabonlinecom.click -u ${REG_USER} --password-stdin
+
+docker push docker-internal.gitlabonlinecom.click/dev-frontend/my-node-app:${IMAGE_TAG}
+
+docker logout docker-internal.gitlabonlinecom.click
+
+```
+  - ${REG_USER} & ${REG_PASS} là Jenkins credentials trỏ đến user Nexus có quyền push vào repo docker-hosted.
+
+---
+
+### 8. (Tuỳ chọn) GitOps + ArgoCD
+
+Nếu bạn dùng GitOps như Java/Python:
+
+GitOps repo:
+```text
+gitops-repo/
+  node-app/
+    test/values.yaml
+    staging/values.yaml
+    prod/values.yaml
+
+```
