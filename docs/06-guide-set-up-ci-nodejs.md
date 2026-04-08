@@ -28,12 +28,51 @@ my-node-app/
   Jenkinsfile
 ```
 
-src/ → code chính.
+  - src/ → code chính.
 
-test/ → unit test (Jest, Mocha, v.v.).
+  - test/ → unit test (Jest, Mocha, v.v.).
 
-package.json → script build/test.
+  - package.json → script build/test.
 
-Dockerfile → đóng gói app vào container.
+  - Dockerfile → đóng gói app vào container.
 
-Jenkinsfile → pipeline CI/CD.
+  - Jenkinsfile → pipeline CI/CD.
+---
+
+### 3. CI trên Jenkins – luồng tổng quát
+
+  1. Checkout code từ Git (GitLab), branch develop / feature/* / release/* / main.
+     
+  2. Cài dependencies bằng npm / yarn / pnpm.
+     
+  3. Chạy unit test + coverage (Jest/Mocha + NYC).
+     
+  4. (Tuỳ chọn) Lint với ESLint.
+     
+  5. Build Docker image cho app Node.
+     
+  6. Trivy scan image.
+     
+  7. Push image lên Nexus Docker internal.
+     
+  8. (Tuỳ chọn) Update GitOps repo → ArgoCD deploy Test/Staging/Prod.
+---
+
+### 4. Chi tiết các bước trong pipeline
+
+#### 4.1. Checkout & tính IMAGE_TAG
+
+  - Jenkins lấy code từ Git.
+  - Dùng git rev-parse --short HEAD để lấy GIT_SHORT_SHA.
+  - IMAGE_TAG = GIT_SHORT_SHA (hoặc thêm prefix theo môi trường: test-, stg-, prod-).
+
+#### 4.2. Cài Node & dependencies
+
+Trong container có Node.js (ví dụ node:20-alpine):
+```text
+npm ci        # ưu tiên nếu có package-lock.json
+# hoặc
+npm install   # nếu không có lockfile
+
+```
+  - npm ci đảm bảo build lặp lại đúng dependency phiên bản đã lock.
