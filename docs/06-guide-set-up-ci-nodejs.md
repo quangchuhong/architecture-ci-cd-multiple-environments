@@ -166,7 +166,7 @@ trivy image --exit-code 0 --severity HIGH,CRITICAL \
 
   - Nếu muốn chặn build khi có vuln HIGH/CRITICAL → đổi --exit-code 0 thành 1 ở dòng thứ hai.
 
---
+---
 
 ### 7. Push image lên Nexus Docker internal
 
@@ -196,3 +196,73 @@ gitops-repo/
     prod/values.yaml
 
 ```
+
+Trong values.yaml:
+```text
+image:
+  repository: docker-internal.gitlabonlinecom.click/dev-frontend/my-node-app
+  tag: <IMAGE_TAG>
+
+```
+
+### 8.1. Jenkins update GitOps (Test)
+
+  - Clone GitOps repo.  
+  - Dựa vào BRANCH_NAME:
+    - develop → envPath = test, gitTargetBranch = develop
+    - release/* → envPath = staging, gitTargetBranch = staging
+    - main → envPath = prod, gitTargetBranch = main
+      
+Dùng yq:
+```text
+yq e '.image.repository = "docker-internal.gitlabonlinecom.click/dev-frontend/my-node-app"' -i values.yaml
+yq e '.image.tag = "'${IMAGE_TAG}'"' -i values.yaml
+
+```
+
+Commit & push:
+```text
+git commit -am "Update my-node-app image tag to ${IMAGE_TAG} for ${envPath}" || echo "No changes"
+git push origin ${gitTargetBranch}
+
+```
+
+ArgoCD:
+
+  - Application Test: trỏ vào branch/path develop/node-app/test.
+  - Auto-sync → deploy image mới vào namespace Test trên EKS.
+
+### 8.2. Promote Staging & rollback
+
+Flow giống Java/Python:
+
+  1. Manual approval trong Jenkins để promote image Test → Staging.
+     
+  2. Jenkins update staging/values.yaml trên branch release/APP_VERSION.
+     
+  3. ArgoCD Staging sync deploy.
+     
+  4. Nếu lỗi:
+     
+    - Manual rollback → git revert HEAD trên release/APP_VERSION (staging)
+    - ArgoCD sync rollback về image tag cũ.
+
+---
+
+### 9. Tóm tắt pipeline CI/CD Node.js
+    
+  1. Checkout
+     
+  2. npm ci / npm install
+     
+  3. npm test / npm run coverage
+     
+  4. (Optional) npm run lint
+     
+  5. docker build
+     
+  6. Trivy scan
+     
+  7. docker push Nexus Docker internal
+     
+  8. (Optional) Update GitOps (test/staging/prod) + ArgoCD deploy/rollback
