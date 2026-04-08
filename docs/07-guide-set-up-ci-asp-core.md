@@ -63,3 +63,43 @@ dotnet build --configuration Release
 dotnet test --configuration Release --no-build
 ```
   - Nếu bất kỳ test nào fail → stage fail → dừng pipeline.
+
+#### 3.3. Publish ứng dụng
+
+Đóng gói app ASP.NET Core ra folder publish/:
+```text
+dotnet publish MyAspNetApp.csproj \
+  --configuration Release \
+  --output ./publish
+```
+
+Thư mục ./publish chứa:
+
+  - MyAspNetApp.dll
+  - Các file runtime cần thiết.
+
+---
+
+### 4. Docker build cho ASP.NET Core
+
+Dockerfile kiểu 2-stage:
+```text
+# Stage 1: build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY . .
+RUN dotnet restore
+RUN dotnet publish MyAspNetApp.csproj -c Release -o /app/publish
+
+# Stage 2: runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+
+# Port app lắng nghe, ví dụ 8080
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "MyAspNetApp.dll"]
+
+```
