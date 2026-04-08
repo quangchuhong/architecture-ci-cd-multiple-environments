@@ -76,3 +76,77 @@ npm install   # nếu không có lockfile
 
 ```
   - npm ci đảm bảo build lặp lại đúng dependency phiên bản đã lock.
+
+
+#### 4.3. Unit Test + Coverage
+
+Giả sử dùng Jest:
+
+Trong package.json:
+```text
+"scripts": {
+  "test": "jest --runInBand",
+  "coverage": "jest --coverage --runInBand"
+}
+
+```
+Trong Jenkins:
+```text
+npm run coverage
+# hoặc
+npm test
+
+```
+  - Jest sinh thư mục coverage/:
+    - coverage/lcov.info
+    - coverage/index.html
+  - Có thể publish coverage report trong Jenkins bằng plugin (Cobertura/HTML Publisher…).
+    
+Nếu dùng Mocha + NYC:
+```text
+"scripts": {
+  "test": "nyc mocha 'test/**/*.test.js'"
+}
+
+```
+#### 4.4. (Tuỳ chọn) Lint
+
+Nếu bạn bật lint:
+```text
+"scripts": {
+  "lint": "eslint src test"
+}
+
+```
+Trong Jenkins:
+```text
+npm run lint
+
+```
+---
+
+### 5. Docker build cho Node.js
+
+Dockerfile ví dụ:
+```text
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+CMD ["node", "src/index.js"]
+
+```
+
+Trong Jenkins (container docker:dind):
+```text
+docker build -t docker-internal.gitlabonlinecom.click/dev-frontend/my-node-app:${IMAGE_TAG} .
+
+````
