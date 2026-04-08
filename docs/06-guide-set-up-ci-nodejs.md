@@ -1,4 +1,4 @@
-## CI cho ứng dụng Node.js
+## CI CD cho ứng dụng Node.js
 
 ### 1. Mục tiêu
 
@@ -266,3 +266,189 @@ Flow giống Java/Python:
   7. docker push Nexus Docker internal
      
   8. (Optional) Update GitOps (test/staging/prod) + ArgoCD deploy/rollback
+
+---
+
+### 10. JenkinsFile pipeline CI/CD Node.js
+
+```bash
+podTemplate(
+  label: 'node-pod',
+  containers: [
+    containerTemplate(
+      name: 'jnlp',
+      image: 'jenkins/inbound-agent:latest-jdk17',
+      args: '${computer.jnlpmac} ${computer.name}',
+      resourceRequestCpu: '200m',
+      resourceRequestMemory: '256Mi',
+      resourceLimitCpu: '500m',
+      resourceLimitMemory: '512Mi'
+    ),
+    containerTemplate(
+      name: 'node',
+      image: 'node:20-alpine',
+      command: 'cat',
+      ttyEnabled: true,
+      resourceRequestCpu: '500m',
+      resourceRequestMemory: '512Mi',
+      resourceLimitCpu: '1000m',
+      resourceLimitMemory: '1Gi'
+    ),
+    containerTemplate(
+      name: 'docker',
+      image: 'docker:24-dind',
+      privileged: true,
+      ttyEnabled: true,
+      command: 'dockerd-entrypoint.sh',
+      args: '--insecure-registry=docker-internal.gitlabonlinecom.click'
+    ),
+    containerTemplate(
+      name: 'trivy',
+      image: 'aquasec/trivy:0.69.3',
+      command: 'cat',
+      ttyEnabled: true
+    )
+  ],
+) {
+
+  def APP_NAME        = "my-node-app"
+  def NEXUS_REGISTRY  = "docker-internal.gitlabonlinecom.click"
+  def IMAGE_NAME      = "dev-frontend/${APP_NAME}"   // path trên Nexus Docker
+  def TARFILE_NAME    = ""
+
+  node('node-pod') {
+
+    stage('Checkout') {
+      echo "[Checkout] Lấy source từ SCM"
+      checkout scm
+      script {
+        try {
+          GIT_SHORT_SHA = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+        } catch (e) {
+          GIT_SHORT_SHA = env.BUILD_NUMBER
+        }
+        IMAGE_TAG = GIT_SHORT_SHA
+        TARFILE_NAME = "image-${APP_NAME}-${IMAGE_TAG}.tar"
+        echo "GIT_SHORT_SHA = ${GIT_SHORT_SHA}, IMAGE_TAG = ${IMAGE_TAG}"
+      }
+    }
+
+    stage('Node Unit Test & Coverage') {
+      container('node') {
+        sh '''
+          # cài build deps cơ bản cho node:20-alpine nếu cần
+          apk add --no-cache bash
+
+          # install deps
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+          # chạy test + coverage (giả sử đã định nghĩa script "test" hoặc "coverage" trong package.json)
+          if npm run | grep -q "coverage"; then
+            npm run coverage
+          else
+            npm test
+          fi
+        '''
+      }
+    }
+
+    stage('Docker Build & Upload TAR to Nexus RAW') {
+      container('docker') {
+        withCredentials([
+          usernamePassword(
+            credentialsId: 'docker-user-internal',   // user push/pull Docker internal
+            usernameVariable: 'REG_USER',
+            passwordVariable: 'REG_PASS'
+          ),
+          usernamePassword(
+            credentialsId: 'nexus-raw-creds',        // user có quyền trên raw-artifacts
+            usernameVariable: 'NX_USER',
+            passwordVariable: 'NX_PASS'
+          )
+        ]) {
+          sh """
+            echo "${REG_PASS}" | docker login ${NEXUS_REGISTRY} -u "${REG_USER}" --password-stdin
+
+            echo "[Docker] Build image ${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            docker build -t ${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} .
+
+            echo "[Docker] Save image ra TAR: ${TARFILE_NAME}"
+            docker save ${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} -o ${TARFILE_NAME}
+            ls -lh ${TARFILE_NAME}
+
+            docker logout ${NEXUS_REGISTRY}
+
+            # Cài curl nếu image docker:dind không có
+            if ! command -v curl >/dev/null 2>&1; then
+              apk add --no-cache curl
+            fi
+
+            echo "[RAW] Upload ${TARFILE_NAME} lên Nexus RAW"
+            curl -v -w "\\nHTTP_CODE:%{http_code}\\n" \\
+              -u "${NX_USER}:${NX_PASS}" \\
+              --upload-file ${TARFILE_NAME} \\
+              "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/dev-frontend/docker-tar/${TARFILE_NAME}"
+          """
+        }
+      }
+    }
+
+    stage('Trivy Scan Image TAR (from Nexus RAW)') {
+      container('trivy') {
+        withCredentials([usernamePassword(
+          credentialsId: 'nexus-raw-creds',
+          usernameVariable: 'NX_USER',
+          passwordVariable: 'NX_PASS'
+        )]) {
+          sh """
+            # Cài curl nếu chưa có (alpine base)
+            if ! command -v curl >/dev/null 2>&1; then
+              apk add --no-cache curl
+            fi
+
+            echo "[Trivy] Download TAR from Nexus RAW: ${TARFILE_NAME}"
+            curl -u "${NX_USER}:${NX_PASS}" \\
+              -o ${TARFILE_NAME} \\
+              "http://nexus.gitlabonlinecom.click/repository/raw-artifacts/dev-frontend/docker-tar/${TARFILE_NAME}"
+
+            echo "[Trivy] Scan image TAR ${TARFILE_NAME}"
+
+            trivy image --input ${TARFILE_NAME} \\
+              --exit-code 0 \\
+              --severity LOW,MEDIUM
+
+            trivy image --input ${TARFILE_NAME} \\
+              --exit-code 0 \\
+              --severity HIGH,CRITICAL
+          """
+        }
+      }
+    }
+
+    stage('Push Image to Nexus Docker') {
+      container('docker') {
+        withCredentials([usernamePassword(
+          credentialsId: 'docker-user-internal',
+          usernameVariable: 'REG_USER',
+          passwordVariable: 'REG_PASS'
+        )]) {
+          sh """
+            echo "${REG_PASS}" | docker login ${NEXUS_REGISTRY} -u "${REG_USER}" --password-stdin
+
+            echo "[Nexus] Push image ${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            docker push ${NEXUS_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+
+            docker logout ${NEXUS_REGISTRY}
+          """
+        }
+      }
+    }
+
+  } // node
+} // podTemplate
+
+```
