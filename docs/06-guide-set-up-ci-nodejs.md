@@ -29,7 +29,11 @@ my-node-app/
 ```
 
 src/ → code chính.
+
 test/ → unit test (Jest, Mocha, v.v.).
+
 package.json → script build/test.
+
 Dockerfile → đóng gói app vào container.
+
 Jenkinsfile → pipeline CI/CD.
