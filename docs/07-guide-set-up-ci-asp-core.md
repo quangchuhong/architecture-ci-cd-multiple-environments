@@ -103,3 +103,99 @@ EXPOSE 8080
 ENTRYPOINT ["dotnet", "MyAspNetApp.dll"]
 
 ```
+
+Trong Jenkins (container docker:dind):
+```text
+docker build -t docker-internal.gitlabonlinecom.click/dev-backend/my-aspnet-app:${IMAGE_TAG} .
+
+```
+---
+
+### 5. Trivy scan + push Nexus Docker
+
+Y hệt các app khác:
+
+Trivy scan:
+```text
+trivy image --exit-code 0 --severity LOW,MEDIUM \
+  docker-internal.gitlabonlinecom.click/dev-backend/my-aspnet-app:${IMAGE_TAG}
+
+trivy image --exit-code 0 --severity HIGH,CRITICAL \
+  docker-internal.gitlabonlinecom.click/dev-backend/my-aspnet-app:${IMAGE_TAG}
+
+```
+
+Push Nexus Docker:
+```text
+docker login docker-internal.gitlabonlinecom.click -u <user> -p <pass>
+docker push docker-internal.gitlabonlinecom.click/dev-backend/my-aspnet-app:${IMAGE_TAG}
+docker logout docker-internal.gitlabonlinecom.click
+
+```
+
+<user>/<pass> là credentials Jenkins trỏ đến user trên Nexus có quyền push vào docker-hosted.
+
+---
+
+### 6. (Tuỳ chọn) GitOps + ArgoCD
+
+Nếu bạn đã có:
+
+  - GitOps repo: gitops-repo-deploy-argocd-aspnet, cấu trúc:
+
+```text
+gitops-repo/
+  aspnet/
+    test/values.yaml
+    staging/values.yaml
+    prod/values.yaml
+
+```
+
+Trong values.yaml:
+
+```text
+image:
+  repository: docker-internal.gitlabonlinecom.click/dev-backend/my-aspnet-app
+  tag: <IMAGE_TAG>
+
+```
+
+#### 6.1. Jenkins update GitOps
+
+  - Test (develop):
+    
+```text
+yq e '.image.repository = "docker-internal.gitlabonlinecom.click/dev-backend/my-aspnet-app"' -i values.yaml
+yq e '.image.tag = "'${IMAGE_TAG}'"' -i values.yaml
+git commit -am "Update my-aspnet-app image tag to ${IMAGE_TAG} for test" || echo "No changes"
+git push origin develop
+
+```
+  - Staging (release/APP_VERSION) & Prod (main) như Java/Python:
+    - Manual approval,
+    - Cập nhật staging/values.yaml trên branch release/APP_VERSION,
+    - git revert rollback nếu cần → ArgoCD sync lại.
+
+---
+
+### 7. Tóm tắt Jenkins CI cho ASP.NET Core
+
+1. Checkout
+   
+2. dotnet restore
+   
+3. dotnet build -c Release
+   
+4. dotnet test -c Release --no-build
+   
+5. dotnet publish -c Release -o ./publish (nếu muốn dùng publish trong Docker)
+   
+6. Docker build → docker-internal.gitlabonlinecom.click/dev-backend/my-aspnet-app:${IMAGE_TAG}
+   
+7. Trivy scan
+   
+8. Push Nexus
+   
+9. (Nếu GitOps) Update GitOps test/staging/prod → ArgoCD deploy.
+
