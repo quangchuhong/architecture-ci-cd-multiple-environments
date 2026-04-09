@@ -180,4 +180,115 @@ jenkins:
           }
         }
 
+// Thực tế nên thay mật khẩu bằng secret / LDAP.
 ```
+---
+
+## 5. Job DSL – files/job-dsl/org-structure.groovy
+Định nghĩa:
+
+  - Cấu trúc tổ chức (dept/env/project).
+  - Folder theo cấu trúc đó.
+  - Pipeline build & deploy cho mỗi project, gắn với Git repo + branch + Jenkinsfile.
+    
+Ví dụ:
+```groovy
+def ORG_STRUCTURE = [
+  dev: [
+    dev    : ['proj-a', 'proj-b'],
+    staging: ['proj-a'],
+    prod   : ['proj-a']
+  ],
+  devsecops: [
+    dev    : ['sec-tools'],
+    staging: [],
+    prod   : []
+  ],
+  tester: [
+    dev    : ['proj-a'],
+    staging: [],
+    prod   : []
+  ],
+  db: [
+    dev    : [],
+    staging: [],
+    prod   : ['db-maintenance']
+  ]
+]
+
+def DEFAULT_GIT_ORG  = "git@github.com:your-org"
+def DEFAULT_GIT_CRED = "git-cred-id"
+def GIT_BRANCH_FOR_ENV = [ dev: "develop", staging: "staging", prod: "main" ]
+
+// Folder 3 tầng: dept / env / project
+ORG_STRUCTURE.each { dept, envMap ->
+  folder(dept) {
+    displayName(dept.toUpperCase())
+    description("Phòng ban: ${dept}")
+  }
+
+  envMap.each { envName, projects ->
+    folder("${dept}/${envName}") {
+      displayName("${dept}-${envName}")
+      description("Env: ${envName} của phòng ban ${dept}")
+    }
+
+    projects.each { project ->
+      folder("${dept}/${envName}/${project}") {
+        displayName("${project} (${envName})")
+        description("Project ${project} - Dept: ${dept} - Env: ${envName}")
+      }
+
+      def projectFolder = "${dept}/${envName}/${project}"
+      def gitRepo   = "${DEFAULT_GIT_ORG}/${project}.git"
+      def gitBranch = GIT_BRANCH_FOR_ENV[envName] ?: "main"
+
+      // BUILD pipeline
+      pipelineJob("${projectFolder}/build") {
+        description("BUILD pipeline for ${project} (${dept}/${envName})")
+        logRotator { numToKeep(20) }
+        properties { disableConcurrentBuilds() }
+
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url(gitRepo)
+                  credentials(DEFAULT_GIT_CRED)
+                }
+                branch("refs/heads/${gitBranch}")
+              }
+            }
+            scriptPath('jenkins/Jenkinsfile-build')
+          }
+        }
+      }
+
+      // DEPLOY pipeline
+      pipelineJob("${projectFolder}/deploy") {
+        description("DEPLOY pipeline for ${project} (${dept}/${envName})")
+        logRotator { numToKeep(20) }
+        properties { disableConcurrentBuilds() }
+
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url(gitRepo)
+                  credentials(DEFAULT_GIT_CRED)
+                }
+                branch("refs/heads/${gitBranch}")
+              }
+            }
+            scriptPath('jenkins/Jenkinsfile-deploy')
+          }
+        }
+      }
+    }
+  }
+}
+
+```
+
