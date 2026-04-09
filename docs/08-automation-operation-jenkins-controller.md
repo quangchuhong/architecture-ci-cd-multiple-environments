@@ -412,3 +412,45 @@ Kết quả:
 
    - Folder Jenkins: dept/env/project.
    - Trong mỗi project có các job theo pipelines[].name, mỗi job gắn đúng repo + branch + Jenkinsfile.
+
+---
+
+## 7. Quy trình vận hành
+
+**1. Quản lý hạ tầng Jenkins**
+
+   - Sửa files/casc/jenkins.yaml (user/role/seed job).
+   - Sửa files/job-dsl/projects.json (thêm/sửa/xoá project & pipeline).
+   - Commit vào repo Helm.
+   - ArgoCD/Helm: sync / helm upgrade (nếu không dùng ArgoCD).
+   - Do có checksum/config-* nên Deployment rollout Jenkins pod mới.
+     
+**2. Sau khi Jenkins khởi động**
+
+   - Vào Jenkins → chạy job seed-projects.
+   - Jenkins đọc projects.json → tạo/sync toàn bộ folder + pipeline.
+     
+**3. Thêm project/pipeline mới**
+
+   - Chỉ cần thêm 1 object vào projects[] trong projects.json.
+   - Không cần sửa Groovy, không cần tạo job/pipeline bằng tay.
+     
+**4. Quyền truy cập**
+
+   - Điều khiển bằng regex trong authorizationStrategy.roleBased.roles.project.
+   - Phân theo:
+      - phòng ban (^dev/.*, ^tester/.*, ^db/.*…),
+      - môi trường (^.*/prod/.* để devsecops quản prod),
+      - hoặc chi tiết hơn nếu cần.
+---
+
+## 8. Ghi chú thêm
+
+   - Nếu dùng LDAP/SSO:
+      - Thay securityRealm.local bằng LDAP.
+      - Trong assignments dùng group name thay cho user.
+        
+   - Password trong ví dụ chỉ là demo; môi trường thật nên:
+      - Dùng secret/password hash, hoặc LDAP/SSO.
+        
+   - Nếu muốn thêm loại job khác (Multibranch, v.v.), có thể mở rộng engine pipelines.groovy sau này.
