@@ -229,3 +229,98 @@ jenkins:
               - "db-user1"
 
 ```
+
+### 4.2. Seed job chạy Job DSL
+```yaml
+  jobs:
+    - script: >
+        job('seed-projects') {
+          description('Seed: đọc projects.json, tạo folder + pipeline')
+          logRotator { numToKeep(5) }
+          steps {
+            dsl {
+              external('/var/jenkins_home/job-dsl/pipelines.groovy')
+              removeAction('DELETE')
+              ignoreExisting(false)
+            }
+          }
+        }
+
+```
+---
+
+## 5. JSON cấu hình project/pipeline – files/job-dsl/projects.json
+
+JSON là nơi nhập dữ liệu:
+
+   - Phòng ban (dept).
+   - Môi trường (env).
+   - Tên project (name).
+   - Mỗi pipeline có thể trỏ tới repo HTTPS và branch riêng.
+     
+Ví dụ:
+```json
+{
+  "gitCredentialId": "gitlab-https-token",
+  "defaultBranchPerEnv": {
+    "dev": "develop",
+    "staging": "staging",
+    "prod": "main"
+  },
+  "projects": [
+    {
+      "dept": "dev",
+      "env": "dev",
+      "name": "proj-a",
+
+      "gitRepo": "https://gitlab.com/your-group/proj-a.git",
+      "branch": "feature/default-branch",
+
+      "pipelines": [
+        {
+          "name": "proj-a-dev-build",
+          "jenkinsfile": "jenkins/Jenkinsfile-build",
+          "gitRepo": "https://gitlab.com/your-group/proj-a-build.git",
+          "branch": "feature/build-branch"
+        },
+        {
+          "name": "proj-a-dev-deploy",
+          "jenkinsfile": "jenkins/Jenkinsfile-deploy",
+          "gitRepo": "https://gitlab.com/your-group/proj-a-deploy.git"
+        },
+        {
+          "name": "proj-a-dev-scan",
+          "jenkinsfile": "jenkins/Jenkinsfile-scan",
+          "gitRepo": "https://gitlab.com/your-group/security-scan.git",
+          "branch": "main"
+        }
+      ]
+    },
+    {
+      "dept": "dev",
+      "env": "staging",
+      "name": "proj-a",
+      "gitRepo": "https://gitlab.com/your-group/proj-a.git",
+      "pipelines": [
+        {
+          "name": "proj-a-stg-ci",
+          "jenkinsfile": "jenkins/Jenkinsfile-ci"
+        }
+      ]
+    }
+  ]
+}
+
+```
+
+Ưu tiên giá trị:
+
+   - Repo:
+      - Nếu có pipeline.gitRepo → dùng repo đó.
+      - Nếu không → dùng project.gitRepo.
+        
+   - Branch:
+      1. pipeline.branch nếu có.
+      2. Nếu không → project.branch nếu có.
+      3. Nếu không → defaultBranchPerEnv[env].
+      4. Nếu vẫn không → "main".
