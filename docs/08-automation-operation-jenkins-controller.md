@@ -51,3 +51,181 @@ jenkins-controller/
     deployment.yaml
     service.yaml
     pvc.yaml
+```
+
+### 3.1. ConfigMap JCasC – templates/configmap-jcasc.yaml
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "jenkins-controller.fullname" . }}-jcasc
+data:
+  jenkins.yaml: |
+{{ .Files.Get "files/casc/jenkins.yaml" | nindent 4 }}
+
+```
+
+### 3.2. ConfigMap Job DSL – templates/configmap-jobdsl.yaml
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "jenkins-controller.fullname" . }}-jobdsl
+data:
+  projects.json: |
+{{ .Files.Get "files/job-dsl/projects.json" | nindent 4 }}
+  pipelines.groovy: |
+{{ .Files.Get "files/job-dsl/pipelines.groovy" | nindent 4 }}
+
+```
+
+### 3.3. Deployment – templates/deployment.yaml (phần chính)
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "jenkins-controller.fullname" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "jenkins-controller.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "jenkins-controller.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        checksum/config-jcasc: {{ include (print $.Template.BasePath "/configmap-jcasc.yaml") . | sha256sum }}
+        checksum/config-jobdsl: {{ include (print $.Template.BasePath "/configmap-jobdsl.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: jenkins
+          image: jenkins/jenkins:lts-jdk17
+          env:
+            - name: CASC_JENKINS_CONFIG
+              value: /var/jenkins_home/casc/jenkins.yaml
+          volumeMounts:
+            - name: jenkins-home
+              mountPath: /var/jenkins_home
+            - name: jcasc
+              mountPath: /var/jenkins_home/casc
+            - name: jobdsl
+              mountPath: /var/jenkins_home/job-dsl
+      volumes:
+        - name: jenkins-home
+          persistentVolumeClaim:
+            claimName: {{ include "jenkins-controller.fullname" . }}
+        - name: jcasc
+          configMap:
+            name: {{ include "jenkins-controller.fullname" . }}-jcasc
+            items:
+              - key: jenkins.yaml
+                path: jenkins.yaml
+        - name: jobdsl
+          configMap:
+            name: {{ include "jenkins-controller.fullname" . }}-jobdsl
+            items:
+              - key: projects.json
+                path: projects.json
+              - key: pipelines.groovy
+                path: pipelines.groovy
+
+// checksum/* giúp ArgoCD tự rollout Jenkins khi ConfigMap thay đổi.
+
+
+```
+---
+
+## 4. JCasC – files/casc/jenkins.yaml
+
+### 4.1. Users & Role-based Auth
+
+Ví dụ đơn giản (local users + role theo phòng ban/env):
+```yaml
+jenkins:
+  systemMessage: "Jenkins managed by Helm + JCasC + Job DSL"
+
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "Admin@123"
+        - id: "dev-user1"
+          password: "Dev@123"
+        - id: "devsecops-user1"
+          password: "DevSec@123"
+        - id: "tester-user1"
+          password: "Tester@123"
+        - id: "db-user1"
+          password: "DB@123"
+
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+          - name: "admin"
+            permissions:
+              - "Overall/Administer"
+              - "Overall/Read"
+            assignments:
+              - "admin"
+        project:
+          # Dev - full quyền mọi job dưới dev/dev/*
+          - name: "dev_dev_env_rw"
+            pattern: "^dev/dev/.*"
+            permissions:
+              - "Job/Read"
+              - "Job/Build"
+              - "Job/Configure"
+              - "View/Read"
+            assignments:
+              - "dev-user1"
+
+          # Dev - read+build mọi job dưới dev/(staging|prod)/*
+          - name: "dev_stg_prod_rb"
+            pattern: "^dev/(staging|prod)/.*"
+            permissions:
+              - "Job/Read"
+              - "Job/Build"
+              - "View/Read"
+            assignments:
+              - "dev-user1"
+
+          # DevSecOps - admin mọi job prod (mọi phòng ban)
+          - name: "devsecops_prod_admin"
+            pattern: "^.*/prod/.*"
+            permissions:
+              - "Job/Read"
+              - "Job/Build"
+              - "Job/Configure"
+              - "Job/Delete"
+              - "View/Read"
+            assignments:
+              - "devsecops-user1"
+
+          # Tester - read+build mọi job dưới tester/*
+          - name: "tester_build_rb"
+            pattern: "^tester/.*"
+            permissions:
+              - "Job/Read"
+              - "Job/Build"
+              - "View/Read"
+            assignments:
+              - "tester-user1"
+
+          # DB team - admin db/*
+          - name: "db_team_admin"
+            pattern: "^db/.*"
+            permissions:
+              - "Job/Read"
+              - "Job/Build"
+              - "Job/Configure"
+              - "Job/Delete"
+              - "View/Read"
+            assignments:
+              - "db-user1"
+
+```
