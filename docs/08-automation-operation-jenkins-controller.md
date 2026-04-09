@@ -291,4 +291,44 @@ ORG_STRUCTURE.each { dept, envMap ->
 }
 
 ```
+---
 
+## 6. Template Helm
+
+### 6.1. ConfigMap JCasC – templates/configmap-jcasc.yaml
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "jenkins-controller.fullname" . }}-jcasc
+data:
+  jenkins.yaml: |
+{{ .Files.Get "files/casc/jenkins.yaml" | nindent 4 }}
+
+```
+
+### 6.2. ConfigMap Job DSL – templates/configmap-jobdsl.yaml
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "jenkins-controller.fullname" . }}-jobdsl
+data:
+  org-structure.groovy: |
+{{ .Files.Get "files/job-dsl/org-structure.groovy" | nindent 4 }}
+
+```
+
+### 6.3. Deployment – templates/deployment.yaml (phần quan trọng)
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "jenkins-controller.fullname" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "jenkins-controller
+
+```
