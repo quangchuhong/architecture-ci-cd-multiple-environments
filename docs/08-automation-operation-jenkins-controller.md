@@ -7,6 +7,19 @@
   - Cấu trúc **phòng ban / môi trường / project / pipeline** bằng **Job DSL**.
 - Deploy & cập nhật Jenkins qua **Helm** (và/hoặc ArgoCD).
 
+Cài plugin:
+
+  - Folder
+  - Role-based Authorization Strategy (role-strategy)
+  - Configuration as Code (configuration-as-code)
+  - Job DSL
+    
+Tạo repo jenkins-config:
+
+  - casc/jenkins.yaml: security + roles + (optional) users.
+  - job-dsl/departments.groovy: tạo folder theo phòng ban/env/project.
+  - job-dsl/pipelines.groovy: tạo pipeline build, deploy trong từng project.
+
 ---
 
 ## 2. Cấu trúc Helm chart
