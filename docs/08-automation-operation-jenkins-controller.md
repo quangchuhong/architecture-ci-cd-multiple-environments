@@ -163,6 +163,8 @@ jenkins:
               - "View/Read"
             assignments:
               - "db-user1"
+              - "db-user2"
+              - "db-team"     # group từ LDAP/SSO
 
   jobs:
     - script: >
