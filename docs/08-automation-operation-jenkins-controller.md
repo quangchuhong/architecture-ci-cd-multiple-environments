@@ -324,3 +324,91 @@ Ví dụ:
       2. Nếu không → project.branch nếu có.
       3. Nếu không → defaultBranchPerEnv[env].
       4. Nếu vẫn không → "main".
+
+---
+
+## 6. Engine Job DSL – files/job-dsl/pipelines.groovy
+
+Groovy đọc JSON và tạo folder + pipeline.
+```groovy
+import groovy.json.JsonSlurper
+
+// 1. Đọc JSON
+def cfgText = new File('/var/jenkins_home/job-dsl/projects.json').text
+def cfg = new JsonSlurper().parseText(cfgText)
+
+def defaultBranchPerEnv = cfg.defaultBranchPerEnv ?: [:]
+def gitCredId = cfg.gitCredentialId
+
+// 2. Tạo folder: dept / env / project
+cfg.projects.groupBy { it.dept }.each { dept, deptProjects ->
+  folder(dept) {
+    displayName(dept.toUpperCase())
+    description("Phòng ban: ${dept}")
+  }
+
+  deptProjects.groupBy { it.env }.each { envName, envProjects ->
+    folder("${dept}/${envName}") {
+      displayName("${dept}-${envName}")
+      description("Env: ${envName} của phòng ban ${dept}")
+    }
+
+    envProjects.groupBy { it.name }.each { projName, projConfigs ->
+      folder("${dept}/${envName}/${projName}") {
+        displayName("${projName} (${envName})")
+        description("Project ${projName} - Dept: ${dept} - Env: ${envName}")
+      }
+
+      // 3. Tạo pipeline cho từng cấu hình project/env
+      projConfigs.each { p ->
+        def projectFolder      = "${dept}/${envName}/${projName}"
+        def projectDefaultRepo = p.gitRepo
+        def projectDefaultBr   = p.branch
+
+        p.pipelines.each { pl ->
+          def jobPath   = "${projectFolder}/${pl.name}"
+          def gitRepo   = pl.gitRepo ?: projectDefaultRepo
+          def gitBranch = pl.branch
+                            ?: projectDefaultBr
+                            ?: defaultBranchPerEnv[envName]
+                            ?: "main"
+
+          if (!gitRepo) {
+            println "[WARN] Bỏ qua ${jobPath} vì không có gitRepo"
+            return
+          }
+
+          pipelineJob(jobPath) {
+            description("Pipeline '${pl.name}' for ${projName} (${dept}/${envName})")
+            logRotator { numToKeep(20) }
+            properties { disableConcurrentBuilds() }
+
+            definition {
+              cpsScm {
+                scm {
+                  git {
+                    remote {
+                      url(gitRepo)           // HTTPS URL
+                      credentials(gitCredId) // Jenkins credential
+                    }
+                    branch("refs/heads/${gitBranch}")
+                  }
+                }
+                scriptPath(pl.jenkinsfile)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+return this
+
+```
+
+Kết quả:
+
+   - Folder Jenkins: dept/env/project.
+   - Trong mỗi project có các job theo pipelines[].name, mỗi job gắn đúng repo + branch + Jenkinsfile.
