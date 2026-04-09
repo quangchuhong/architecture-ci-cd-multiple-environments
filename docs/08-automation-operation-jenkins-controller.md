@@ -57,7 +57,7 @@ volumes:
 Ví dụ:
 ```text
 {
-  "gitCredentialId": "gitlab-https-token",
+  "gitCredentialId": "gitlab-https-token", 
   "defaultBranchPerEnv": {
     "dev": "develop",
     "staging": "staging",
@@ -68,32 +68,35 @@ Ví dụ:
       "dept": "dev",
       "env": "dev",
       "name": "proj-a",
-      "gitRepo": "https://gitlab.com/your-group/proj-a.git",
-      "branch": "feature/init",
+
+      "gitRepo": "https://gitlab.com/your-group/proj-a.git",   // OPTIONAL: default cho project
+      "branch": "feature/init",                                 // OPTIONAL: default cho project
+
       "pipelines": [
         {
           "name": "proj-a-dev-build",
-          "jenkinsfile": "jenkins/Jenkinsfile-build"
+          "jenkinsfile": "jenkins/Jenkinsfile-build",
+
+          "gitRepo": "https://gitlab.com/your-group/proj-a-build.git",   // repo riêng
+          "branch": "feature/build-branch"                               // branch riêng (optional)
         },
         {
           "name": "proj-a-dev-deploy",
-          "jenkinsfile": "jenkins/Jenkinsfile-deploy"
-        }
-      ]
-    },
-    {
-      "dept": "dev",
-      "env": "staging",
-      "name": "proj-a",
-      "gitRepo": "https://gitlab.com/your-group/proj-a.git",
-      "pipelines": [
+          "jenkinsfile": "jenkins/Jenkinsfile-deploy",
+
+          "gitRepo": "https://gitlab.com/your-group/proj-a-deploy.git"   // repo khác
+          // không khai branch -> dùng branch của project / defaultBranchPerEnv
+        },
         {
-          "name": "proj-a-stg-ci",
-          "jenkinsfile": "jenkins/Jenkinsfile-ci"
+          "name": "proj-a-dev-scan",
+          "jenkinsfile": "Jenkinsfile",
+          "gitRepo": "https://gitlab.com/your-group/security-scan.git",
+          "branch": "main"
         }
       ]
     }
   ]
 }
+
 
 ```
