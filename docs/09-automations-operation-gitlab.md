@@ -1,3 +1,52 @@
+# GitLab Auto Management
+
+Script Python tự động quản lý cấu trúc **Group / Project / User / Permission** trên GitLab.
+
+## 1. Mục tiêu
+
+Tự động hóa:
+
+1. Tạo **group phòng ban** (top-level group)
+2. Tạo **project** trong từng group phòng ban  
+   → cấu trúc:  
+   `Tên phòng ban / Tên project`
+3. Tạo / đảm bảo tồn tại **user**
+4. Phân quyền:
+   - **Maintainer** cho group phòng ban (admin phòng ban)
+   - **RW (Developer)** hoặc **RO (Reporter)** cho từng user trên từng project
+
+Lưu ý: Mỗi project là **một repo duy nhất**, bạn tự quản lý 3 branch `dev`, `staging`, `prod` trong Git.  
+Script **không** tạo branch, chỉ tạo group/project/user/quyền.
+
+---
+
+## 2. Yêu cầu
+
+- Python 3.x
+- Thư viện `requests`:
+  ```bash
+  pip install requests
+```
+    - GitLab self-hosted: http://gitlab.gitlabonlinecom.click
+    - Personal Access Token (PAT) trên GitLab với scope: api
+
+---
+
+## 3. Lấy Personal Access Token (PAT)
+
+    1. Đăng nhập http://gitlab.gitlabonlinecom.click
+
+    2. Vào: User menu (avatar) → Preferences
+
+    3. Vào tab Access Tokens (hoặc Personal Access Tokens tuỳ phiên bản)
+
+    4. Tạo token với:
+        - Name: api-automation (tùy ý)
+        - Scopes: chọn api
+
+    5. Copy token vừa tạo → dán vào biến PRIVATE_TOKEN trong script.
+
+
 ```python
 import requests
 from typing import Optional, Dict, List
