@@ -24,7 +24,7 @@ Script **không** tạo branch, chỉ tạo group/project/user/quyền.
 
 - Python 3.x
 - Thư viện `requests`:
-  ```bash
+```bash
   pip install requests
 ```
     - GitLab self-hosted: http://gitlab.gitlabonlinecom.click
