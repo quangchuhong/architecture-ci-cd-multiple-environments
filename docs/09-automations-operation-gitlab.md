@@ -46,6 +46,35 @@ Script **không** tạo branch, chỉ tạo group/project/user/quyền.
 
     5. Copy token vừa tạo → dán vào biến PRIVATE_TOKEN trong script.
 
+---
+
+## 4. Cấu trúc & Logic phân quyền
+
+### 4.1. Group & Project
+
+Mỗi phòng ban là một group:
+   - Developer
+   - Devsecops
+   - Tester
+   - DB
+   - 
+Mỗi project là một project GitLab nằm dưới group phòng ban tương ứng:
+
+Ví dụ:
+
+   - Developer/project-a
+   - Developer/project-b
+   - Tester/test-suite
+   - DB/db-schema
+
+### 4.2. Phân quyền
+
+Level quyền GitLab:
+
+   - 20 = Reporter → RO
+   - 30 = Developer → RW
+   - 40 = Maintainer → admin group phòng ban
+Script hỗ trợ:
 
 ```python
 import requests
