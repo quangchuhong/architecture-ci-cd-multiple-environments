@@ -359,3 +359,10 @@ if __name__ == "__main__":
 
 
 ```
+
+Run file gitlab_auto_manage.py:
+
+```bash
+python gitlab_auto_manage.py
+
+```
