@@ -76,6 +76,14 @@ Level quyền GitLab:
    - 40 = Maintainer → admin group phòng ban
 Script hỗ trợ:
 
+---
+
+## 5. Cấu hình script
+
+Tạo file: gitlab_auto_manage.py với nội dung sau
+
+(chỉ cần chỉnh phần CẤU HÌNH ở đầu file):
+
 ```python
 import requests
 from typing import Optional, Dict, List
@@ -314,6 +322,40 @@ def setup_users_and_permissions(dept_groups, projects):
         user_id = user_obj["id"]
 
         for dept, proj_map in dept_map.items():
-       
+            if dept not in projects:
+                print(f"[WARN] Dept '{dept}' not found, skip")
+                continue
+            for proj, mode in proj_map.items():
+                if proj not in projects[dept]:
+                    print(f"[WARN] Project '{dept}/{proj}' not found, skip")
+                    continue
+
+                mode = mode.lower()
+                if mode not in ["rw", "ro"]:
+                    print(f"[WARN] Mode '{mode}' invalid, use rw/ro, skip")
+                    continue
+
+                project_obj = projects[dept][proj]
+                project_id = project_obj["id"]
+                access_level = ACCESS_LEVEL_RW if mode == "rw" else ACCESS_LEVEL_RO
+
+                add_member_to_project(
+                    project_id=project_id,
+                    user_id=user_id,
+                    access_level=access_level
+                )
+
+
+# ================== MAIN ==================
+
+def main():
+    dept_groups, projects = setup_structure()
+    setup_users_and_permissions(dept_groups, projects)
+    print("Done.")
+
+
+if __name__ == "__main__":
+    main()
+
 
 ```
