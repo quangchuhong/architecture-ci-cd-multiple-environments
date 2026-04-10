@@ -84,80 +84,97 @@ Tạo file: gitlab_auto_manage.py với nội dung sau
 
 (chỉ cần chỉnh phần CẤU HÌNH ở đầu file):
 
-```python
-import requests
-from typing import Optional, Dict, List
-
-# ================== CẤU HÌNH CẦN CHỈNH ==================
-
-GITLAB_BASE_URL = "http://gitlab.gitlabonlinecom.click"
-PRIVATE_TOKEN   = "YOUR_PRIVATE_TOKEN"          # Personal Access Token (scope: api)
-
-# Phòng ban (top-level group)
-DEPARTMENTS = [
+File Values.json:
+```json
+{
+  "gitlab": {
+    "base_url": "http://gitlab.gitlabonlinecom.click",
+    "private_token": "YOUR_PRIVATE_TOKEN"
+  },
+  "departments": [
     "Developer",
     "Devsecops",
     "Tester",
     "DB"
-]
-
-# Project cho từng phòng ban
-PROJECTS_BY_DEPT: Dict[str, List[str]] = {
+  ],
+  "projects_by_dept": {
     "Developer": ["project-a", "project-b"],
     "Devsecops": ["sec-tool"],
-    "Tester":    ["test-suite"],
-    "DB":        ["db-schema"]
-}
-
-# Danh sách user cần tạo/ensure
-USERS = [
+    "Tester": ["test-suite"],
+    "DB": ["db-schema"]
+  },
+  "users": [
     {
-        "username": "alice",
-        "name":     "Alice Developer",
-        "email":    "alice@example.com"
+      "username": "alice",
+      "name": "Alice Developer",
+      "email": "alice@example.com"
     },
     {
-        "username": "bob",
-        "name":     "Bob Tester",
-        "email":    "bob@example.com"
+      "username": "bob",
+      "name": "Bob Tester",
+      "email": "bob@example.com"
     },
     {
-        "username": "devlead",
-        "name":     "Developer Lead",
-        "email":    "devlead@example.com"
+      "username": "devlead",
+      "name": "Developer Lead",
+      "email": "devlead@example.com"
     }
-]
-
-# access_level GitLab:
-# 20 = Reporter (RO), 30 = Developer (RW), 40 = Maintainer
-ACCESS_LEVEL_RW         = 30
-ACCESS_LEVEL_RO         = 20
-ACCESS_LEVEL_MAINTAINER = 40
-
-# Phân quyền user theo Dept / Project: "rw" hoặc "ro"
-# PERMISSIONS[username][department][project] = "rw" | "ro"
-PERMISSIONS = {
+  ],
+  "access_levels": {
+    "rw": 30,
+    "ro": 20,
+    "maintainer": 40
+  },
+  "permissions": {
     "alice": {
-        "Developer": {
-            "project-a": "rw",
-            "project-b": "ro"
-        }
+      "Developer": {
+        "project-a": "rw",
+        "project-b": "ro"
+      }
     },
     "bob": {
-        "Tester": {
-            "test-suite": "rw"
-        }
+      "Tester": {
+        "test-suite": "rw"
+      }
     }
+  },
+  "dept_maintainers": {
+    "Developer": ["devlead"]
+    // "Devsecops": ["sec-lead"],
+    // "Tester": ["test-lead"],
+    // "DB": ["db-lead"]
+  }
 }
 
-# Maintainer cho group phòng ban (ngang admin phòng ban)
-# DEPT_MAINTAINERS[department] = [list username]
-DEPT_MAINTAINERS = {
-    "Developer": ["devlead"],
-    # "Devsecops": ["sec-lead"],
-    # "Tester": ["test-lead"],
-    # "DB": ["db-lead"]
-}
+```
+
+Files script: 
+
+```python
+import json
+import requests
+from typing import Optional, Dict, List
+
+# ============= ĐỌC CẤU HÌNH TỪ values.json =============
+
+with open("values.json", "r", encoding="utf-8") as f:
+    cfg = json.load(f)
+
+GITLAB_BASE_URL = cfg["gitlab"]["base_url"]
+PRIVATE_TOKEN   = cfg["gitlab"]["private_token"]
+
+DEPARTMENTS       = cfg["departments"]
+PROJECTS_BY_DEPT  = cfg["projects_by_dept"]
+USERS             = cfg["users"]
+
+ACCESS_LEVEL_RW         = cfg["access_levels"]["rw"]
+ACCESS_LEVEL_RO         = cfg["access_levels"]["ro"]
+ACCESS_LEVEL_MAINTAINER = cfg["access_levels"]["maintainer"]
+
+PERMISSIONS       = cfg["permissions"]
+DEPT_MAINTAINERS  = cfg["dept_maintainers"]
+
+
 
 # ================== HTTP HELPER ==================
 
